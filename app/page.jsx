@@ -208,20 +208,21 @@ const projects = [
   },
 ];
 
-const skills = [
-  'C++',
-  'Python',
-  'C',
-  'Java',
-  'SQL',
-  'Assembly',
-  'HTML',
-  'PHP',
-  'Boost Libraries',
-  'Data Structures & Algorithms',
-  'Object‑Oriented Design',
-  'Data Analysis (Python / SQL / Excel)',
-];
+// Organized skill categories
+const skillCategories = {
+  languages: [
+    'C++', 'Python', 'Java', 'JavaScript', 'TypeScript', 'C', 'SQL', 
+    'HTML', 'CSS', 'PHP', 'Assembly', 'MATLAB'
+  ],
+  frameworks: [
+    'React', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 
+    'Boost Libraries', 'Tailwind CSS', 'Framer Motion', 'Qiskit'
+  ],
+  tools: [
+    'Git', 'Docker', 'AWS', 'Vercel', 'VS Code', 'Jupyter', 
+    'Linux', 'Windows', 'PostgreSQL', 'MongoDB', 'Excel'
+  ]
+};
 
 // -----------------------------
 //  MAIN COMPONENT
@@ -260,11 +261,27 @@ export default function Portfolio() {
 
       {/* ABOUT */}
       <Section id="about" title="About" direction="left">
-        <p>
-          I'm a <span className="font-bold" style={{ color: P3_COLORS.accent }}>final‑year Computer Science student</span> at
-          Lancaster University (~1st‑class), graduating July 2025. By day I build scalable, high‑performance systems at
-          Labelbox; by night I explore quantum algorithms and crack LeetCode problems (700+ solved).
-        </p>
+        <div className="space-y-6">
+          <p className="text-lg leading-relaxed">
+            I'm a <span className="font-bold" style={{ color: P3_COLORS.accent }}>passionate Software Engineer</span> and 
+            final-year Computer Science student at Lancaster University, maintaining a first-class honors trajectory and 
+            graduating in July 2025. Currently, I'm pushing the boundaries of AI development at <span className="font-semibold" style={{ color: P3_COLORS.primary }}>Labelbox</span>, 
+            where I architect high-performance data labeling systems that serve over 10,000 daily users and accelerate machine learning workflows.
+          </p>
+          <p className="text-lg leading-relaxed">
+            My journey spans from <span className="font-semibold" style={{ color: P3_COLORS.accent }}>low-level embedded systems</span> programming 
+            on BBC micro:bits to exploring the cutting-edge frontiers of <span className="font-semibold" style={{ color: P3_COLORS.primary }}>quantum computing</span> through 
+            my dissertation research. I've solved 700+ algorithmic challenges on LeetCode, refined large-language models at Outlier AI, 
+            and built everything from 3D physics simulations to genetic algorithm pathfinders. Whether I'm optimizing C++ performance, 
+            implementing quantum algorithms with Qiskit, or crafting seamless user experiences with React, I thrive on transforming 
+            complex problems into elegant, scalable solutions.
+          </p>
+          <p className="text-lg leading-relaxed">
+            Beyond the code, I'm driven by the intersection of <span className="font-semibold" style={{ color: P3_COLORS.accent }}>artificial intelligence</span> and 
+            <span className="font-semibold" style={{ color: P3_COLORS.primary }}> quantum computing</span>—exploring how these revolutionary technologies 
+            can reshape our digital future. I'm always eager to collaborate on challenging projects that push technological boundaries.
+          </p>
+        </div>
       </Section>
 
       {/* EXPERIENCE */}
@@ -359,15 +376,55 @@ export default function Portfolio() {
 
       {/* SKILLS */}
       <Section id="skills" title="Skills" direction="left">
-        <div className="flex flex-wrap gap-3">
-          {skills.map((skill) => (
-            <span
-              key={skill}
-              className="px-3 py-1 rounded-full text-sm border"
-              style={{ borderColor: P3_COLORS.accent }}
+        <div className="space-y-8">
+          {Object.entries(skillCategories).map(([category, skillList]) => (
+            <motion.div
+              key={category}
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="group"
             >
-              {skill}
-            </span>
+              <h3 
+                className="text-2xl font-bold mb-4 uppercase tracking-wider flex items-center gap-3"
+                style={{ color: P3_COLORS.primary }}
+              >
+                <span 
+                  className="w-8 h-0.5 bg-current transform group-hover:w-12 transition-all duration-300"
+                  style={{ backgroundColor: P3_COLORS.accent }}
+                />
+                {category}
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {skillList.map((skill, index) => (
+                  <motion.div
+                    key={skill}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: index * 0.05 }}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    className="relative group/skill"
+                  >
+                    <div
+                      className="px-4 py-3 rounded-lg text-center font-medium text-sm transition-all duration-300 cursor-pointer backdrop-blur-sm border border-opacity-30 hover:border-opacity-60 group-hover/skill:shadow-lg"
+                      style={{ 
+                        backgroundColor: P3_COLORS.primary + '15',
+                        borderColor: P3_COLORS.accent,
+                        color: 'white'
+                      }}
+                    >
+                      <span className="relative z-10">{skill}</span>
+                      <div 
+                        className="absolute inset-0 rounded-lg opacity-0 group-hover/skill:opacity-20 transition-opacity duration-300"
+                        style={{ backgroundColor: P3_COLORS.accent }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           ))}
         </div>
       </Section>
