@@ -351,7 +351,7 @@ export default function Portfolio() {
 
       {/* FOOTER */}
       <footer className="py-6 text-center text-sm bg-black bg-opacity-20 backdrop-blur">
-        © {new Date().getFullYear()}  Stephen Addo · Built with ❤ & Persona‑style vibes.
+        © {new Date().getFullYear()}  Stephen Addo · Built with ❤ & Persona‑style vibes · v1.1
       </footer>
     </div>
   );
