@@ -110,6 +110,7 @@ const experiences = [
     company: 'Labelbox',
     role: 'Software Engineer',
     period: 'Jun 2024 – Present',
+    image: '/images/Labelbox_Logo.png',
     bullets: [
       'Design and develop robust systems that accelerate AI model development.',
       'Created high‑performance data‑labelling tools, improving accuracy & efficiency.',
@@ -120,6 +121,7 @@ const experiences = [
     company: 'Outlier AI',
     role: 'AI Trainer',
     period: 'Jul 2024 – Mar 2025',
+    image: '/images/outlier_logo.png',
     bullets: [
       'Refined large‑language‑model datasets and annotation tasks to boost prediction accuracy.',
       'Analysed and curated large‑scale datasets for high‑fidelity fine‑tuning.',
@@ -129,6 +131,7 @@ const experiences = [
     company: 'Lancaster University',
     role: 'Software Engineering Intern',
     period: 'Jun 2024 – Aug 2024',
+    image: '/images/Lancaster_uni.png',
     bullets: [
       'Developed web apps using modern JavaScript, focusing on performance and UX.',
       'Refactored asynchronous code, halving load times for 10k‑user applications.',
@@ -138,6 +141,7 @@ const experiences = [
     company: 'Specsavers',
     role: 'Optical Assistant',
     period: 'Sep 2023 – May 2025',
+    image: '/images/specsavers.png',
     bullets: [
       'Provided front‑line customer service and pre‑examination support in high‑volume settings.',
     ],
@@ -146,6 +150,7 @@ const experiences = [
     company: 'Boots Opticians',
     role: 'Optical Consultant',
     period: 'Aug 2022 – Aug 2024',
+    image: '/images/Boots_Opticians.png',
     bullets: [
       'Advised patients on eyewear, performing quality pre‑exam tests and building rapport.',
     ],
@@ -265,13 +270,34 @@ export default function Portfolio() {
       {/* EXPERIENCE */}
       <Section id="experience" title="Experience" direction="right">
         <div className="space-y-6">
-          {experiences.map(({ company, role, period, bullets }) => (
-            <Card key={company} className="bg-opacity-10" style={{ backgroundColor: P3_COLORS.primary }}>
-              <CardContent className="p-6 space-y-3">
-                <h3 className="text-2xl font-semibold">{company}</h3>
-                <p className="text-sm uppercase tracking-wider">{role} · {period}</p>
-                <ul className="list-disc list-inside text-base leading-relaxed space-y-1">
-                  {bullets.map((b, i) => (<li key={i}>{b}</li>))}
+          {experiences.map(({ company, role, period, bullets, image }) => (
+            <Card 
+              key={company} 
+              className="bg-opacity-10 hover:bg-opacity-20 transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
+              style={{ backgroundColor: P3_COLORS.primary }}
+            >
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-white rounded-lg p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <img 
+                        src={image} 
+                        alt={`${company} logo`}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-semibold group-hover:text-white transition-colors duration-300">{company}</h3>
+                    <p className="text-sm uppercase tracking-wider mt-1" style={{ color: P3_COLORS.accent }}>
+                      {role} · {period}
+                    </p>
+                  </div>
+                </div>
+                <ul className="list-disc list-inside text-base leading-relaxed space-y-2 ml-20 text-gray-300">
+                  {bullets.map((b, i) => (
+                    <li key={i} className="group-hover:text-white transition-colors duration-300">{b}</li>
+                  ))}
                 </ul>
               </CardContent>
             </Card>
