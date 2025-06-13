@@ -154,11 +154,36 @@ const experiences = [
 
 const projects = [
   {
-    title: '3D Physics Simulation',
-    period: 'Mar 2022 – May 2022',
+    title: 'BBC-micro-bit-Timers-Software-Serial-Demo',
+    period: '2023',
     description:
-      'Built a C++ / Python VPython simulation modelling gravity, collisions, and vector dynamics in a confined 3D space.',
-    link: '#',
+      'A bare-metal implementation exploring timers and software serial communication on the BBC micro:bit without using high-level CODAL helpers or interrupts.',
+    link: 'https://github.com/Steve-IX/BBC-micro-bit-Timers-Software-Serial-Demo',
+    tech: ['C++', 'Embedded Systems', 'nRF52'],
+  },
+  {
+    title: 'HOG-Harris-Corner-Detection',
+    period: '2023',
+    description:
+      'A MATLAB implementation of HOG and Harris Corner Detection algorithms from scratch, with analysis of their robustness in feature extraction.',
+    link: 'https://github.com/Steve-IX/HOG-Harris-Corner-Detection',
+    tech: ['MATLAB', 'Computer Vision', 'Feature Detection'],
+  },
+  {
+    title: 'Interrupts-and-displays',
+    period: '2023',
+    description:
+      'A C++ implementation that transforms a BBC micro:bit into a dual-display, real-time data logger using interrupt-driven programming.',
+    link: 'https://github.com/Steve-IX/Interrupts-and-displays',
+    tech: ['C++', 'Embedded Systems', 'Interrupts'],
+  },
+  {
+    title: 'Genetic-Algorithms',
+    period: '2023',
+    description:
+      'GA-PathPlanner: A MATLAB project that finds collision-free, near-shortest paths for a point-robot using genetic algorithms on a 500×500 binary map.',
+    link: 'https://github.com/Steve-IX/Genetic-Algorithms',
+    tech: ['MATLAB', 'Genetic Algorithms', 'Path Planning'],
   },
   {
     title: 'Quantum Computing for Combinatorial Optimisation',
@@ -166,6 +191,7 @@ const projects = [
     description:
       'Dissertation exploring QAOA & Grover\'s algorithm via Qiskit / Cirq, benchmarking against classical heuristics.',
     link: '#',
+    tech: ['Python', 'Quantum Computing', 'Qiskit'],
   },
 ];
 
@@ -248,15 +274,47 @@ export default function Portfolio() {
       {/* PROJECTS */}
       <Section id="projects" title="Projects" direction="up">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map(({ title, description, period, link }) => (
-            <Card key={title} className="bg-opacity-10 hover:bg-opacity-20 transition" style={{ backgroundColor: P3_COLORS.primary }}>
+          {projects.map(({ title, description, period, link, tech }) => (
+            <Card 
+              key={title} 
+              className="bg-opacity-10 hover:bg-opacity-20 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              style={{ backgroundColor: P3_COLORS.primary }}
+              onClick={() => link !== '#' && window.open(link, '_blank')}
+            >
               <CardContent className="p-6 space-y-4">
                 <h4 className="text-xl font-semibold">{title}</h4>
                 <p className="text-xs uppercase tracking-wider">{period}</p>
-                <p>{description}</p>
+                <p className="text-gray-300">{description}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {tech.map((t) => (
+                    <span
+                      key={t}
+                      className="px-2 py-1 text-xs rounded-full"
+                      style={{ 
+                        backgroundColor: P3_COLORS.accent + '20',
+                        color: P3_COLORS.accent,
+                        border: `1px solid ${P3_COLORS.accent}40`
+                      }}
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
                 {link && (
-                  <Button asChild variant="outline" size="sm" style={{ borderColor: P3_COLORS.accent }}>
-                    <a href={link} target="_blank" rel="noreferrer">Details</a>
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4 hover:scale-105 transition-transform"
+                    style={{ borderColor: P3_COLORS.accent }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(link, '_blank');
+                    }}
+                  >
+                    <a href={link} target="_blank" rel="noreferrer">
+                      View Project <ExternalLink className="ml-2 h-4 w-4" />
+                    </a>
                   </Button>
                 )}
               </CardContent>
