@@ -154,6 +154,14 @@ const experiences = [
 
 const projects = [
   {
+    title: '3D Physics Simulation',
+    period: '2022',
+    description:
+      'Built a C++ / Python VPython simulation modelling gravity, collisions, and vector dynamics in a confined 3D space.',
+    link: '#',
+    tech: ['C++', 'Python', 'VPython', 'Physics'],
+  },
+  {
     title: 'BBC-micro-bit-Timers-Software-Serial-Demo',
     period: '2023',
     description:
