@@ -30,6 +30,199 @@ const makeVariants = (dir = 'up', dist = 50) => {
   };
 };
 
+// Animated Grid Background Component
+const AnimatedGridBackground = () => {
+  const [mousePosition, setMousePosition] = useState({ x: 0.5, y: 0.5 });
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const y = (e.clientY - rect.top) / rect.height;
+    setMousePosition({ x: Math.max(0, Math.min(1, x)), y: Math.max(0, Math.min(1, y)) });
+  };
+
+  return (
+    <div 
+      className="absolute inset-0 overflow-hidden"
+      onMouseMove={handleMouseMove}
+      style={{ pointerEvents: 'auto' }}
+    >
+      <div className="absolute inset-0">
+        {/* Generate grid dots */}
+        {Array.from({ length: 300 }).map((_, i) => {
+          const x = (i % 25) * 4; // 25 columns, 4% spacing
+          const y = Math.floor(i / 25) * 8.33; // 12 rows, ~8.33% spacing
+          
+          // Calculate distance from mouse for morphing effect
+          const distanceFromMouse = Math.sqrt(
+            Math.pow((x / 100) - mousePosition.x, 2) + 
+            Math.pow((y / 100) - mousePosition.y, 2)
+          );
+          
+          // More responsive scaling and opacity
+          const scale = Math.max(0.5, Math.min(3, 1 + (1 - distanceFromMouse) * 2));
+          const opacity = Math.max(0.2, Math.min(1, 0.4 + (1 - distanceFromMouse) * 0.6));
+          
+          return (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 rounded-full"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                backgroundColor: P3_COLORS.accent,
+              }}
+              animate={{
+                scale: scale,
+                opacity: opacity,
+              }}
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 25,
+                duration: 0.2
+              }}
+            />
+          );
+        })}
+        
+        {/* Connecting lines that respond to mouse */}
+        <svg className="absolute inset-0 w-full h-full">
+          {/* Horizontal lines */}
+          {Array.from({ length: 300 }).map((_, i) => {
+            const x1 = (i % 25) * 4;
+            const y1 = Math.floor(i / 25) * 8.33;
+            const x2 = ((i + 1) % 25) * 4;
+            const y2 = Math.floor((i + 1) / 25) * 8.33;
+            
+            if ((i + 1) % 25 === 0) return null; // Skip end of rows
+            
+            const midX = (x1 + x2) / 200; // Convert to 0-1 range
+            const midY = (y1 + y2) / 200;
+            
+            const distanceFromMouse = Math.sqrt(
+              Math.pow(midX - mousePosition.x, 2) + 
+              Math.pow(midY - mousePosition.y, 2)
+            );
+            
+            const lineOpacity = Math.max(0.1, Math.min(0.8, 0.2 + (1 - distanceFromMouse) * 0.6));
+            const strokeWidth = Math.max(0.5, Math.min(2, 0.5 + (1 - distanceFromMouse) * 1.5));
+            
+            return (
+              <motion.line
+                key={`h-${i}`}
+                x1={`${x1}%`}
+                y1={`${y1}%`}
+                x2={`${x2}%`}
+                y2={`${y1}%`}
+                stroke={P3_COLORS.primary}
+                animate={{
+                  opacity: lineOpacity,
+                  strokeWidth: strokeWidth,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  duration: 0.2
+                }}
+              />
+            );
+          })}
+          
+          {/* Vertical lines */}
+          {Array.from({ length: 275 }).map((_, i) => {
+            const x1 = (i % 25) * 4;
+            const y1 = Math.floor(i / 25) * 8.33;
+            const y2 = Math.floor((i + 25) / 25) * 8.33;
+            
+            if (Math.floor(i / 25) >= 11) return null; // Skip bottom row
+            
+            const midX = x1 / 100;
+            const midY = (y1 + y2) / 200;
+            
+            const distanceFromMouse = Math.sqrt(
+              Math.pow(midX - mousePosition.x, 2) + 
+              Math.pow(midY - mousePosition.y, 2)
+            );
+            
+            const lineOpacity = Math.max(0.1, Math.min(0.8, 0.2 + (1 - distanceFromMouse) * 0.6));
+            const strokeWidth = Math.max(0.5, Math.min(2, 0.5 + (1 - distanceFromMouse) * 1.5));
+            
+            return (
+              <motion.line
+                key={`v-${i}`}
+                x1={`${x1}%`}
+                y1={`${y1}%`}
+                x2={`${x1}%`}
+                y2={`${y2}%`}
+                stroke={P3_COLORS.primary}
+                animate={{
+                  opacity: lineOpacity,
+                  strokeWidth: strokeWidth,
+                }}
+                transition={{
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20,
+                  duration: 0.2
+                }}
+              />
+            );
+          })}
+        </svg>
+        
+        {/* Floating particles that follow mouse */}
+        {Array.from({ length: 12 }).map((_, i) => (
+          <motion.div
+            key={`particle-${i}`}
+            className="absolute w-2 h-2 rounded-full"
+            style={{
+              backgroundColor: P3_COLORS.accent,
+              opacity: 0.6,
+              boxShadow: `0 0 10px ${P3_COLORS.accent}50`,
+            }}
+            animate={{
+              left: `${mousePosition.x * 90 + (i * 6)}%`,
+              top: `${mousePosition.y * 85 + (i * 4)}%`,
+              scale: [1, 1.3, 1],
+            }}
+            transition={{
+              left: { duration: 1.2 + i * 0.1, ease: "easeOut" },
+              top: { duration: 1.2 + i * 0.1, ease: "easeOut" },
+              scale: {
+                duration: 1.8 + i * 0.2,
+                repeat: Infinity,
+                repeatType: "reverse",
+              },
+            }}
+          />
+        ))}
+        
+        {/* Cursor glow effect */}
+        <motion.div
+          className="absolute w-32 h-32 rounded-full pointer-events-none"
+          style={{
+            background: `radial-gradient(circle, ${P3_COLORS.accent}25 0%, ${P3_COLORS.primary}15 30%, transparent 70%)`,
+            filter: 'blur(15px)',
+          }}
+          animate={{
+            left: `${mousePosition.x * 100}%`,
+            top: `${mousePosition.y * 100}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+          transition={{
+            type: "spring",
+            stiffness: 150,
+            damping: 20,
+            duration: 0.4
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 // -----------------------------
 //  SECTION COMPONENT
 // -----------------------------
@@ -233,20 +426,30 @@ export default function Portfolio() {
       <NavBar />
 
       {/* HERO */}
-      <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-transparent to-black relative">
+      <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-transparent to-black relative overflow-hidden">
+        {/* Animated Grid Background */}
+        <AnimatedGridBackground />
+        
         <motion.div
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="text-center p-8"
+          className="text-center p-8 relative z-10 pointer-events-none"
         >
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-wider" style={{ color: P3_COLORS.primary }}>
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-wider relative" style={{ color: P3_COLORS.primary }}>
             Stephen Addo
+            {/* Subtle glow effect */}
+            <div 
+              className="absolute inset-0 blur-3xl opacity-20 -z-10"
+              style={{ 
+                background: `linear-gradient(45deg, ${P3_COLORS.primary}, ${P3_COLORS.accent})`,
+              }}
+            />
           </h1>
-          <p className="mt-4 text-xl md:text-2xl max-w-2xl mx-auto">
+          <p className="mt-4 text-xl md:text-2xl max-w-2xl mx-auto relative z-10">
             Software Engineer · AI & Quantum‑Computing Enthusiast · Final‑Year CS @ Lancaster University
           </p>
-          <div className="mt-8 flex justify-center gap-4">
+          <div className="mt-8 flex justify-center gap-4 relative z-10 pointer-events-auto">
             <Button asChild size="lg" style={{ backgroundColor: P3_COLORS.accent }}>
               <a href="#contact">Get in Touch</a>
             </Button>
@@ -255,8 +458,15 @@ export default function Portfolio() {
             </Button>
           </div>
         </motion.div>
-        {/* subtle stripes */}
-        <div className="absolute inset-0 bg-[url('/stripes.svg')] opacity-5" />
+        
+        {/* Enhanced background overlay */}
+        <div className="absolute inset-0 bg-[url('/stripes.svg')] opacity-3" />
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            background: `radial-gradient(circle at 30% 50%, ${P3_COLORS.primary}20 0%, transparent 50%)`,
+          }}
+        />
       </section>
 
       {/* ABOUT */}
