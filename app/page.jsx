@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Github, Linkedin, Mail, ExternalLink } from "lucide-react";
+import { Github, Linkedin, Mail, ExternalLink, Globe } from "lucide-react";
 
 // -----------------------------
 //  THEME CONSTANTS
@@ -223,6 +223,28 @@ const AnimatedGridBackground = () => {
   );
 };
 
+// ----------------------------------
+//  SPINNING GLOBE COMPONENT
+// ----------------------------------
+const SpinningGlobe = () => (
+  <motion.div
+    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 0.25, rotate: 360 }}
+    transition={{
+      opacity: { duration: 1.6, ease: 'easeInOut' },
+      rotate: { repeat: Infinity, duration: 90, ease: 'linear' },
+    }}
+    style={{ zIndex: 5 }}
+  >
+    <Globe
+      className="w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] drop-shadow-xl"
+      stroke={P3_COLORS.accent}
+      strokeWidth={0.7}
+    />
+  </motion.div>
+);
+
 // -----------------------------
 //  SECTION COMPONENT
 // -----------------------------
@@ -429,6 +451,8 @@ export default function Portfolio() {
       <section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-transparent to-black relative overflow-hidden">
         {/* Animated Grid Background */}
         <AnimatedGridBackground />
+        {/* Subtle Spinning Globe */}
+        <SpinningGlobe />
         
         <motion.div
           initial={{ opacity: 0, y: 60 }}
