@@ -237,10 +237,12 @@ const SpinningGlobe = () => (
     }}
     style={{ zIndex: 5 }}
   >
-    <Globe
+    <img
+      src="/images/spinning-globe.png"
+      alt="Spinning Globe"
       className="w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] drop-shadow-xl"
-      stroke={P3_COLORS.accent}
-      strokeWidth={0.7}
+      style={{ filter: 'drop-shadow(0 0 32px #4d9de0)' }}
+      draggable="false"
     />
   </motion.div>
 );
