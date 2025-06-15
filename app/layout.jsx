@@ -1,4 +1,5 @@
 import './globals.css'
+import { ThemeProvider } from '@/lib/ThemeContext'
 
 export const metadata = {
   title: 'Stephen Addo - Portfolio',
@@ -8,7 +9,11 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <ThemeProvider>
+          {children}
+        </ThemeProvider>
+      </body>
     </html>
   )
 } 
