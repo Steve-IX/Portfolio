@@ -8,6 +8,7 @@ import { Github, Linkedin, Mail, ExternalLink, Globe } from "lucide-react";
 import { useTheme } from '@/lib/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LightModeBackground } from '@/components/LightModeBackground';
+import { VisitCounter } from '@/components/VisitCounter';
 
 // -----------------------------
 //  SECTION COMPONENT
@@ -226,28 +227,28 @@ const NavBar = () => {
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
         {/* Desktop Navigation */}
         <ul className="hidden md:flex justify-center gap-6 py-4">
-          {links.map(({ id, label }) => (
-            <li key={id}>
-              <a
+        {links.map(({ id, label }) => (
+          <li key={id}>
+            <a
                 href={id === 'home' ? '#' : `#${id}`}
-                onClick={() => setActive(id)}
-                className="relative uppercase text-sm tracking-wider transition-all duration-300 hover:text-white"
+              onClick={() => setActive(id)}
+              className="relative uppercase text-sm tracking-wider transition-all duration-300 hover:text-white"
                 style={{ 
                   color: active === id ? colors.accent : theme === 'dark' ? '#ffffff' : colors.text
                 }}
-              >
-                {label}
-                {active === id && (
-                  <motion.span
-                    layoutId="underline"
-                    className="absolute -bottom-1 left-0 right-0 h-0.5"
+            >
+              {label}
+              {active === id && (
+                <motion.span
+                  layoutId="underline"
+                  className="absolute -bottom-1 left-0 right-0 h-0.5"
                     style={{ backgroundColor: colors.accent }}
-                  />
-                )}
-              </a>
-            </li>
-          ))}
-        </ul>
+                />
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
 
         {/* Mobile Navigation */}
         <div className="md:hidden flex items-center">
@@ -461,6 +462,7 @@ export default function Portfolio() {
       }}
     >
       <NavBar />
+      <VisitCounter />
 
       {/* HERO */}
       <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden">
