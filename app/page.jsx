@@ -14,19 +14,19 @@ import { LightModeBackground } from '@/components/LightModeBackground';
 // -----------------------------
 const Section = ({ id, title, children, direction = 'up' }) => {
   const { colors } = useTheme();
-  
-  /** Motion variants helper */
-  const makeVariants = (dir = 'up', dist = 50) => {
-    const prop = dir === 'up' || dir === 'down' ? 'y' : 'x';
-    const from = (dir === 'up' || dir === 'left') ? dist : -dist;
-    return {
-      hidden: { opacity: 0, [prop]: from },
-      show: {
-        opacity: 1,
-        [prop]: 0,
-        transition: { duration: 0.6, ease: 'easeOut' },
-      },
-    };
+
+/** Motion variants helper */
+const makeVariants = (dir = 'up', dist = 50) => {
+  const prop = dir === 'up' || dir === 'down' ? 'y' : 'x';
+  const from = (dir === 'up' || dir === 'left') ? dist : -dist;
+  return {
+    hidden: { opacity: 0, [prop]: from },
+    show: {
+      opacity: 1,
+      [prop]: 0,
+      transition: { duration: 0.6, ease: 'easeOut' },
+    },
+  };
   };
 
   return (
@@ -177,31 +177,32 @@ const SpinningGlobe = () => {
   const { colors } = useTheme();
   
   return (
-    <motion.div
-      className="absolute inset-0 flex items-center justify-center pointer-events-none"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 0.25, rotate: 360 }}
-      transition={{
-        opacity: { duration: 1.6, ease: 'easeInOut' },
-        rotate: { repeat: Infinity, duration: 90, ease: 'linear' },
-      }}
-      style={{ zIndex: 5 }}
-    >
-      <img
-        src="/images/spinning-globe.png"
-        alt="Spinning Globe"
-        className="w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] drop-shadow-xl"
+  <motion.div
+    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 0.25, rotate: 360 }}
+    transition={{
+      opacity: { duration: 1.6, ease: 'easeInOut' },
+      rotate: { repeat: Infinity, duration: 90, ease: 'linear' },
+    }}
+    style={{ zIndex: 5 }}
+  >
+    <img
+      src="/images/spinning-globe.png"
+      alt="Spinning Globe"
+      className="w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] drop-shadow-xl"
         style={{ filter: `drop-shadow(0 0 32px ${colors.primary})` }}
-        draggable="false"
-      />
-    </motion.div>
-  );
+      draggable="false"
+    />
+  </motion.div>
+);
 };
 
 // -----------------------------
 //  NAVBAR COMPONENT
 // -----------------------------
 const links = [
+  { id: 'home', label: 'Home' },
   { id: 'about', label: 'About' },
   { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Projects' },
@@ -210,7 +211,8 @@ const links = [
 ];
 
 const NavBar = () => {
-  const [active, setActive] = useState('about');
+  const [active, setActive] = useState('home');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { theme, colors } = useTheme();
   
   return (
@@ -222,11 +224,12 @@ const NavBar = () => {
       style={{ backgroundColor: colors.secondary }}
     >
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
-        <ul className="flex justify-center gap-6 py-4">
+        {/* Desktop Navigation */}
+        <ul className="hidden md:flex justify-center gap-6 py-4">
           {links.map(({ id, label }) => (
             <li key={id}>
               <a
-                href={`#${id}`}
+                href={id === 'home' ? '#' : `#${id}`}
                 onClick={() => setActive(id)}
                 className="relative uppercase text-sm tracking-wider transition-all duration-300 hover:text-white"
                 style={{ 
@@ -245,8 +248,78 @@ const NavBar = () => {
             </li>
           ))}
         </ul>
+
+        {/* Mobile Navigation */}
+        <div className="md:hidden flex items-center">
+          <button 
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="p-2"
+            aria-label="Toggle menu"
+          >
+            <div className="w-6 flex flex-col gap-1.5">
+              <span 
+                className="block h-0.5 w-full transition-all duration-300"
+                style={{ 
+                  backgroundColor: colors.primary,
+                  transform: isMenuOpen ? 'rotate(45deg) translate(5px, 5px)' : 'none'
+                }}
+              />
+              <span 
+                className="block h-0.5 transition-all duration-300"
+                style={{ 
+                  backgroundColor: colors.primary,
+                  width: isMenuOpen ? '0%' : '100%',
+                  opacity: isMenuOpen ? 0 : 1
+                }}
+              />
+              <span 
+                className="block h-0.5 w-full transition-all duration-300"
+                style={{ 
+                  backgroundColor: colors.primary,
+                  transform: isMenuOpen ? 'rotate(-45deg) translate(5px, -5px)' : 'none'
+                }}
+              />
+            </div>
+          </button>
+        </div>
+
+        {/* Theme Toggle */}
         <ThemeToggle />
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      <motion.div
+        initial={false}
+        animate={{ 
+          height: isMenuOpen ? 'auto' : 0,
+          opacity: isMenuOpen ? 1 : 0
+        }}
+        transition={{ duration: 0.3 }}
+        className="md:hidden overflow-hidden"
+        style={{ backgroundColor: theme === 'dark' ? 'rgba(1, 22, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)' }}
+      >
+        {isMenuOpen && (
+          <ul className="flex flex-col py-4 px-6 space-y-4">
+            {links.map(({ id, label }) => (
+              <li key={id}>
+                <a
+                  href={id === 'home' ? '#' : `#${id}`}
+                  onClick={() => {
+                    setActive(id);
+                    setIsMenuOpen(false);
+                  }}
+                  className="block py-2 uppercase text-sm tracking-wider transition-all duration-300"
+                  style={{ 
+                    color: active === id ? colors.accent : theme === 'dark' ? '#ffffff' : colors.text
+                  }}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </motion.div>
     </motion.nav>
   );
 };
@@ -390,7 +463,7 @@ export default function Portfolio() {
       <NavBar />
 
       {/* HERO */}
-      <section className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden">
         {/* Background based on theme */}
         {theme === 'dark' ? <CosmicBackground /> : <LightModeBackground />}
         {/* Subtle Spinning Globe */}
@@ -576,28 +649,28 @@ export default function Portfolio() {
                     </span>
                   ))}
                 </div>
-                <Button 
-                  asChild 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4 hover:scale-105 transition-transform"
+                  <Button 
+                    asChild 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-4 hover:scale-105 transition-transform"
                   style={{ 
                     borderColor: colors.accent,
                     color: colors.accent,
                     opacity: link === '#' ? 0.5 : 1,
                     pointerEvents: link === '#' ? 'none' : 'auto'
                   }}
-                  onClick={(e) => {
-                    e.stopPropagation();
+                    onClick={(e) => {
+                      e.stopPropagation();
                     if (link !== '#') {
                       window.open(link, '_blank');
                     }
-                  }}
-                >
-                  <a href={link} target="_blank" rel="noreferrer">
+                    }}
+                  >
+                    <a href={link} target="_blank" rel="noreferrer">
                     {link === '#' ? 'Coming Soon' : 'View Project'} {link !== '#' && <ExternalLink className="ml-2 h-4 w-4" />}
-                  </a>
-                </Button>
+                    </a>
+                  </Button>
               </CardContent>
             </Card>
           ))}
