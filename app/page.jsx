@@ -9,6 +9,7 @@ import { useTheme } from '@/lib/ThemeContext';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LightModeBackground } from '@/components/LightModeBackground';
 import { VisitCounter } from '@/components/VisitCounter';
+import { Globe3D } from '@/components/Globe3D';
 
 // -----------------------------
 //  SECTION COMPONENT
@@ -172,31 +173,10 @@ const CosmicBackground = () => {
 };
 
 // ----------------------------------
-//  SPINNING GLOBE COMPONENT
+//  3D SPINNING GLOBE COMPONENT
 // ----------------------------------
 const SpinningGlobe = () => {
-  const { colors } = useTheme();
-  
-  return (
-  <motion.div
-    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 0.25, rotate: 360 }}
-    transition={{
-      opacity: { duration: 1.6, ease: 'easeInOut' },
-      rotate: { repeat: Infinity, duration: 90, ease: 'linear' },
-    }}
-    style={{ zIndex: 5 }}
-  >
-    <img
-      src="/images/spinning-globe.png"
-      alt="Spinning Globe"
-      className="w-[360px] h-[360px] sm:w-[480px] sm:h-[480px] md:w-[600px] md:h-[600px] drop-shadow-xl"
-        style={{ filter: `drop-shadow(0 0 32px ${colors.primary})` }}
-      draggable="false"
-    />
-  </motion.div>
-);
+  return <Globe3D />;
 };
 
 // -----------------------------
