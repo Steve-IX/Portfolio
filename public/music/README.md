@@ -20,7 +20,12 @@ Place your music files in this directory (`public/music/`). Supported formats:
 - `.ogg`
 - `.m4a`
 
-### Step 2: Update the Playlist
+### Step 2: Extract Cover Art (Optional)
+If your MP3 files have embedded cover art, extract them to the `covers/` subdirectory:
+- See `covers/extract-instructions.md` for detailed instructions
+- Save cover art as JPG files (e.g., `covers/your-song-cover.jpg`)
+
+### Step 3: Update the Playlist
 Edit `components/MusicPlayer.jsx` and add your tracks to the `playlist` array:
 
 ```javascript
@@ -29,20 +34,23 @@ const playlist = [
     title: "Last Goodbye",
     artist: "Undertale OST", 
     album: "Undertale Soundtrack",
-    filename: "Undertale OST - Last Goodbye.mp3"
+    filename: "Undertale OST - Last Goodbye.mp3",
+    coverArt: "/music/covers/undertale-last-goodbye.jpg"  // Optional cover art
   },
   // ADD YOUR NEW TRACKS HERE:
   {
     title: "Your Song Title",
     artist: "Artist Name",
     album: "Album Name", 
-    filename: "your-audio-file.mp3"  // Must match the filename in this directory
+    filename: "your-audio-file.mp3",  // Must match the filename in this directory
+    coverArt: "/music/covers/your-cover-art.jpg"  // Optional, remove if no cover art
   },
   {
     title: "Another Song",
     artist: "Another Artist",
     album: "Another Album",
-    filename: "another-song.mp3"
+    filename: "another-song.mp3",
+    coverArt: "/music/covers/another-cover.jpg"
   }
   // Add as many tracks as you want...
 ];
@@ -72,11 +80,15 @@ If you want to add a song called "Epic Music.mp3" by "John Doe":
 - Keep filenames simple (avoid special characters when possible)
 
 ## Music Player Features:
-✅ Play/Pause  
+✅ Play/Pause with improved functionality  
 ✅ Next/Previous track navigation  
-✅ Volume control  
+✅ Volume control with mute toggle  
 ✅ Progress bar with seeking  
 ✅ Auto-advance to next track  
 ✅ Track counter (current/total)  
 ✅ Minimize/expand player  
 ✅ Loop through playlist  
+✅ **Cover art display** - Shows album art if available  
+✅ Fallback to music icon when cover art unavailable  
+✅ Smooth cover art loading with fade-in effect  
+✅ Album name display in track info  

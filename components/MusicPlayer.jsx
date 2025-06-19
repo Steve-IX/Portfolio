@@ -6,26 +6,29 @@ import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, S
 import { useTheme } from '@/lib/ThemeContext';
 
 export const MusicPlayer = () => {
-  // Playlist of tracks - add new songs here!
+    // Playlist of tracks - add new songs here!
   const playlist = [
     {
       title: "Last Goodbye",
       artist: "Undertale OST",
       album: "Undertale Soundtrack",
-      filename: "Undertale OST - Last Goodbye.mp3"
+      filename: "Undertale OST - Last Goodbye.mp3",
+      coverArt: "/music/covers/undertale-last-goodbye.jpg"
     },
-          {
-        title: "Field of Hopes and Dreams",
-        artist: "Deltarune OST",
-        album: "Deltarune Soundtrack",
-        filename: "Deltarune OST： 13 - Field of Hopes and Dreams.mp3"
-      },
+    {
+      title: "Field of Hopes and Dreams",
+      artist: "Deltarune OST",
+      album: "Deltarune Soundtrack",
+      filename: "Deltarune OST： 13 - Field of Hopes and Dreams.mp3",
+      coverArt: "/music/covers/deltarune-field-of-hopes.jpg"
+    },
     // Add more tracks here in the future:
     // {
     //   title: "Your Song Title",
     //   artist: "Artist Name", 
     //   album: "Album Name",
-    //   filename: "your-audio-file.mp3"
+    //   filename: "your-audio-file.mp3",
+    //   coverArt: "/music/covers/your-cover-art.jpg"
     // },
   ];
 
@@ -38,6 +41,8 @@ export const MusicPlayer = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(null);
+  const [coverArtLoaded, setCoverArtLoaded] = useState(false);
+  const [coverArtError, setCoverArtError] = useState(false);
   const audioRef = useRef(null);
   const { theme, colors } = useTheme();
 
@@ -114,6 +119,15 @@ export const MusicPlayer = () => {
     // Set initial volume
     audio.volume = volume;
 
+    // Force initial load of metadata
+    if (audio.readyState >= 1) {
+      // Metadata already loaded
+      handleLoadedMetadata();
+    } else {
+      // Force load metadata
+      audio.load();
+    }
+
     return () => {
       audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
       audio.removeEventListener('timeupdate', handleTimeUpdate);
@@ -132,6 +146,8 @@ export const MusicPlayer = () => {
     setDuration(0);
     setIsLoaded(false);
     setError(null);
+    setCoverArtLoaded(true); // Start as loaded for immediate display
+    setCoverArtError(false);
     
     // If was playing, continue playing the new track
     if (isPlaying && audioRef.current) {
@@ -149,6 +165,49 @@ export const MusicPlayer = () => {
       setTimeout(playNewTrack, 100);
     }
   }, [currentTrackIndex]);
+
+  // Initialize states on component mount
+  useEffect(() => {
+    console.log('MusicPlayer component mounted, initializing...');
+    
+    // Reset all states to ensure clean initialization
+    setCurrentTime(0);
+    setDuration(0);
+    setIsLoaded(false);
+    setError(null);
+    setCoverArtLoaded(true); // Start as loaded for immediate display
+    setCoverArtError(false);
+    
+    // Preload all cover art images for immediate display
+    const preloadCoverArt = () => {
+      playlist.forEach((track, index) => {
+        if (track.coverArt) {
+          const img = new Image();
+          img.onload = () => {
+            console.log(`Preloaded cover art for: ${track.title}`);
+          };
+          img.onerror = () => {
+            console.log(`Failed to preload cover art for: ${track.title}`);
+          };
+          img.src = track.coverArt;
+        }
+      });
+    };
+    
+    // Start preloading cover art immediately
+    preloadCoverArt();
+    
+    // Small delay to ensure audio element is fully rendered
+    const initTimer = setTimeout(() => {
+      const audio = audioRef.current;
+      if (audio) {
+        console.log('Forcing initial audio load for:', currentTrack.title);
+        audio.load(); // Force reload to trigger metadata loading
+      }
+    }, 100);
+
+    return () => clearTimeout(initTimer);
+  }, []); // Only run on mount
 
   const togglePlay = async () => {
     if (!audioRef.current) {
@@ -324,11 +383,50 @@ export const MusicPlayer = () => {
 
                 {/* Track Info */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div 
-                    className="w-12 h-12 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${colors.primary}20` }}
-                  >
-                    <Music size={20} style={{ color: colors.primary }} />
+                  <div className="w-12 h-12 rounded-lg overflow-hidden relative">
+                    {!coverArtError && currentTrack.coverArt ? (
+                      <>
+                        <img
+                          src={currentTrack.coverArt}
+                          alt={`${currentTrack.title} cover art`}
+                          className="w-full h-full object-cover"
+                          onLoad={() => {
+                            console.log('Cover art loaded for:', currentTrack.title);
+                            setCoverArtLoaded(true);
+                            setCoverArtError(false);
+                          }}
+                          onError={() => {
+                            console.log('Cover art failed to load:', currentTrack.coverArt);
+                            setCoverArtError(true);
+                            setCoverArtLoaded(false);
+                          }}
+                          style={{ 
+                            opacity: 1, // Always visible immediately
+                            transition: 'opacity 0.2s ease'
+                          }}
+                          loading="eager" // Force immediate loading
+                        />
+                        {/* Fallback overlay only shows on error */}
+                        {coverArtError && (
+                          <div 
+                            className="absolute inset-0 w-full h-full rounded-lg flex items-center justify-center"
+                            style={{ 
+                              backgroundColor: `${colors.primary}20`,
+                              backdropFilter: 'blur(2px)'
+                            }}
+                          >
+                            <Music size={20} style={{ color: colors.primary }} />
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div 
+                        className="w-full h-full rounded-lg flex items-center justify-center"
+                        style={{ backgroundColor: `${colors.primary}20` }}
+                      >
+                        <Music size={20} style={{ color: colors.primary }} />
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div 
@@ -343,6 +441,14 @@ export const MusicPlayer = () => {
                     >
                       {currentTrack.artist}
                     </div>
+                    {currentTrack.album && (
+                      <div 
+                        className="text-xs truncate opacity-75"
+                        style={{ color: colors.muted || (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
+                      >
+                        {currentTrack.album}
+                      </div>
+                    )}
                   </div>
                 </div>
 
