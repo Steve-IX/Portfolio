@@ -72,6 +72,8 @@ If you want to add a song called "Epic Music.mp3" by "John Doe":
 
 ## Current Music Files:
 - `Undertale OST - Last Goodbye.mp3` (5.2MB)
+- `Deltarune OST： 13 - Field of Hopes and Dreams.mp3` (6.2MB) 
+- `Amore Mio Aiutami (Dream Version) ● Piero Piccioni.mp3` (10MB)
 
 ## Notes:
 - Make sure the `filename` in the playlist exactly matches the actual filename

@@ -22,6 +22,27 @@ export const MusicPlayer = () => {
       filename: "Deltarune OST： 13 - Field of Hopes and Dreams.mp3",
       coverArt: "/music/covers/deltarune-field-of-hopes.jpg"
     },
+    {
+      title: "Amore Mio Aiutami (Dream Version)",
+      artist: "Piero Piccioni",
+      album: "The Best of Piero Piccioni - The Greatest Hits 2",
+      filename: "Amore Mio Aiutami (Dream Version) ● Piero Piccioni.mp3",
+      coverArt: "/music/covers/piero-piccioni-greatest-hits.jpg"
+    },
+    {
+      title: "Naruto Shippūden",
+      artist: "Naruto OST",
+      album: "Naruto Shippūden Soundtrack",
+      filename: "Naruto Shippūden.mp3",
+      coverArt: "/music/covers/naruto-shippuden.jpg"
+    },
+    {
+      title: "Crossing Field (Orchestra)",
+      artist: "Orchestra Version",
+      album: "Sword Art Online OST",
+      filename: "Crossing Field (Orchestra).mp3",
+      coverArt: "/music/covers/crossing-field-orchestra.jpg"
+    },
     // Add more tracks here in the future:
     // {
     //   title: "Your Song Title",
