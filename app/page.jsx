@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { LightModeBackground } from '@/components/LightModeBackground';
 import { VisitCounter } from '@/components/VisitCounter';
 import { Globe3D } from '@/components/Globe3D';
+import { MusicPlayer } from '@/components/MusicPlayer';
 
 // -----------------------------
 //  SECTION COMPONENT
@@ -443,6 +444,7 @@ export default function Portfolio() {
     >
       <NavBar />
       <VisitCounter />
+      <MusicPlayer />
 
       {/* HERO */}
       <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden">
