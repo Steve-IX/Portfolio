@@ -65,9 +65,206 @@ export const MusicPlayer = () => {
   const [coverArtLoaded, setCoverArtLoaded] = useState(false);
   const [coverArtError, setCoverArtError] = useState(false);
   const audioRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animationFrameRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyzerRef = useRef(null);
+  const sourceRef = useRef(null);
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
+
+  // Audio Visualizer Setup
+  const cleanupAudioContext = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    if (sourceRef.current) {
+      try {
+        sourceRef.current.disconnect();
+      } catch (error) {
+        console.log('Source already disconnected');
+      }
+      sourceRef.current = null;
+    }
+    
+    if (analyzerRef.current) {
+      try {
+        analyzerRef.current.disconnect();
+      } catch (error) {
+        console.log('Analyzer already disconnected');
+      }
+      analyzerRef.current = null;
+    }
+    
+    console.log('Audio context cleaned up');
+  };
+
+  const setupAudioContext = () => {
+    if (!audioRef.current) return;
+    
+    try {
+      // Complete cleanup first
+      cleanupAudioContext();
+      
+      // If context doesn't exist, create it
+      if (!audioContextRef.current) {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = audioContext;
+      }
+      
+      const audioContext = audioContextRef.current;
+      
+      // Create new analyzer and source
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 256;
+      analyzer.smoothingTimeConstant = 0.8;
+      
+      // Create source from current audio element
+      const source = audioContext.createMediaElementSource(audioRef.current);
+      
+      // Connect the chain
+      source.connect(analyzer);
+      analyzer.connect(audioContext.destination);
+      
+      // Store references
+      analyzerRef.current = analyzer;
+      sourceRef.current = source;
+      
+      console.log('Audio context setup/reconnection successful for:', currentTrack.title);
+    } catch (error) {
+      console.error('Error setting up audio context:', error);
+      // If createMediaElementSource fails, it's likely because source already exists
+      // Try to reuse existing context
+      if (error.name === 'InvalidStateError') {
+        console.log('Reusing existing audio context connection');
+      }
+    }
+  };
+
+  const drawVisualizer = () => {
+    if (!canvasRef.current || !analyzerRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const analyzer = analyzerRef.current;
+    
+    const bufferLength = analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    analyzer.getByteFrequencyData(dataArray);
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    if (!isPlaying) {
+      // Show static bars when not playing
+      const barCount = 32;
+      const barWidth = width / barCount;
+      
+      for (let i = 0; i < barCount; i++) {
+        const barHeight = 2;
+        const x = i * barWidth;
+        const y = height - barHeight;
+        
+        ctx.fillStyle = `${colors.primary}20`;
+        ctx.fillRect(x, y, barWidth - 1, barHeight);
+      }
+      return;
+    }
+    
+    // Dynamic visualization when playing
+    const barCount = 32;
+    const barWidth = width / barCount;
+    const dataStep = Math.floor(bufferLength / barCount);
+    
+    for (let i = 0; i < barCount; i++) {
+      const dataIndex = i * dataStep;
+      const barHeight = Math.max(2, (dataArray[dataIndex] / 255) * height * 0.8);
+      const x = i * barWidth;
+      const y = height - barHeight;
+      
+      // Create gradient effect
+      const gradient = ctx.createLinearGradient(0, height, 0, 0);
+      gradient.addColorStop(0, colors.primary);
+      gradient.addColorStop(1, `${colors.primary}40`);
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x, y, barWidth - 1, barHeight);
+    }
+    
+    animationFrameRef.current = requestAnimationFrame(drawVisualizer);
+  };
+
+  const startVisualizer = () => {
+    if (!audioContextRef.current) {
+      setupAudioContext();
+      // Small delay to ensure audio context is ready
+      setTimeout(() => {
+        if (canvasRef.current) {
+          drawVisualizer();
+        }
+      }, 100);
+    } else {
+      // Ensure we have a valid analyzer connection
+      if (!analyzerRef.current && audioRef.current) {
+        setupAudioContext();
+      }
+      drawVisualizer();
+    }
+  };
+
+  const stopVisualizer = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
+    // Draw static state
+    if (canvasRef.current) {
+      drawVisualizer();
+    }
+  };
+
+  // Cleanup audio context on unmount
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+      }
+    };
+  }, []);
+
+  // Start/stop visualizer based on play state
+  useEffect(() => {
+    if (isPlaying) {
+      startVisualizer();
+    } else {
+      stopVisualizer();
+    }
+  }, [isPlaying, colors.primary]);
+
+  // Handle audio element changes (due to key prop) and ensure visualizer connection
+  useEffect(() => {
+    // When track changes and is playing, ensure visualizer is connected
+    if (isPlaying && audioRef.current && audioContextRef.current) {
+      // Check if we need to reconnect
+      if (!analyzerRef.current || !sourceRef.current) {
+        console.log('Reconnecting visualizer for new audio element');
+        setTimeout(() => {
+          setupAudioContext();
+          startVisualizer();
+        }, 150); // Longer delay to ensure audio element is fully ready
+      }
+    }
+  }, [currentTrackIndex, isPlaying]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -87,6 +284,15 @@ export const MusicPlayer = () => {
     const handlePlay = () => {
       console.log('Audio started playing:', currentTrack.title);
       setIsPlaying(true);
+      
+      // Ensure visualizer is connected when audio starts playing
+      if (audioContextRef.current && (!analyzerRef.current || !sourceRef.current)) {
+        console.log('Setting up visualizer connection on play');
+        setTimeout(() => {
+          setupAudioContext();
+          startVisualizer();
+        }, 50);
+      }
     };
 
     const handlePause = () => {
@@ -170,11 +376,35 @@ export const MusicPlayer = () => {
     setCoverArtLoaded(true); // Start as loaded for immediate display
     setCoverArtError(false);
     
+    // Complete cleanup of audio context for new track
+    console.log('Track changed, resetting visualizer');
+    cleanupAudioContext();
+    
     // If was playing, continue playing the new track
     if (isPlaying && audioRef.current) {
       const playNewTrack = async () => {
         try {
+          // Wait a bit for audio element to be ready
+          await new Promise(resolve => setTimeout(resolve, 50));
+          
+          // Setup audio context for new track
+          if (audioContextRef.current) {
+            setupAudioContext();
+            // Resume audio context if suspended
+            if (audioContextRef.current.state === 'suspended') {
+              await audioContextRef.current.resume();
+            }
+          }
+          
           await audioRef.current.play();
+          
+          // Start visualizer after successful play
+          setTimeout(() => {
+            if (isPlaying && analyzerRef.current) {
+              startVisualizer();
+            }
+          }, 100);
+          
         } catch (error) {
           console.error('Error playing new track:', error);
           setIsPlaying(false);
@@ -255,6 +485,16 @@ export const MusicPlayer = () => {
           console.log('Audio not ready, waiting for load...');
           setError('Loading audio...');
           return;
+        }
+
+        // Resume audio context if suspended (required by browsers)
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          await audioContextRef.current.resume();
+        }
+        
+        // Setup audio context on first play if not already setup
+        if (!audioContextRef.current) {
+          setupAudioContext();
         }
 
         // Clear any previous error
@@ -470,6 +710,50 @@ export const MusicPlayer = () => {
                         {currentTrack.album}
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Audio Visualizer */}
+                <div className="mb-3">
+                  <div 
+                    className="w-full h-12 rounded-lg overflow-hidden relative"
+                    style={{ 
+                      backgroundColor: theme === 'dark' 
+                        ? 'rgba(77, 157, 224, 0.05)' 
+                        : 'rgba(26, 111, 176, 0.05)',
+                      border: `1px solid ${theme === 'dark' 
+                        ? 'rgba(77, 157, 224, 0.1)' 
+                        : 'rgba(26, 111, 176, 0.1)'}`
+                    }}
+                  >
+                    <canvas
+                      ref={canvasRef}
+                      width={320}
+                      height={48}
+                      className="w-full h-full"
+                      style={{ 
+                        filter: isPlaying ? 'none' : 'opacity(0.6)',
+                        transition: 'filter 0.3s ease'
+                      }}
+                    />
+                    
+                    {/* Overlay gradient for professional look */}
+                    <div 
+                      className="absolute inset-0 pointer-events-none"
+                      style={{
+                        background: `linear-gradient(90deg, 
+                          ${theme === 'dark' ? 'rgba(1, 22, 39, 0.2)' : 'rgba(255, 255, 255, 0.2)'} 0%, 
+                          transparent 20%, 
+                          transparent 80%, 
+                          ${theme === 'dark' ? 'rgba(1, 22, 39, 0.2)' : 'rgba(255, 255, 255, 0.2)'} 100%)`
+                      }}
+                    />
+                    
+                    {/* Center line for reference */}
+                    <div 
+                      className="absolute left-0 right-0 top-1/2 transform -translate-y-1/2 h-px opacity-20"
+                      style={{ backgroundColor: colors.primary }}
+                    />
                   </div>
                 </div>
 
