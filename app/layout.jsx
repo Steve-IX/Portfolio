@@ -1,5 +1,12 @@
 import './globals.css'
+import { Inter } from 'next/font/google'
 import { ThemeProvider } from '@/lib/ThemeContext'
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+})
 
 export const metadata = {
   title: 'Stephen Addo - Portfolio',
@@ -9,7 +16,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>
+      <body className={inter.className}>
         <ThemeProvider>
           {children}
         </ThemeProvider>

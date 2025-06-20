@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,25 +59,44 @@ const makeVariants = (dir = 'up', dist = 50) => {
 // Cosmic Background Component
 const CosmicBackground = () => {
   const { colors } = useTheme();
+  const [stars, setStars] = useState([]);
+  const [shootingStars, setShootingStars] = useState([]);
+  const [dustParticles, setDustParticles] = useState([]);
   
-  // Generate random stars
-  const stars = Array.from({ length: 200 }).map((_, i) => ({
-    id: i,
-    x: Math.random() * 100,
-    y: Math.random() * 100,
-    size: Math.random() * 2 + 1,
-    duration: Math.random() * 3 + 2,
-    delay: Math.random() * 2,
-  }));
+  // Generate random values only on client-side to prevent hydration mismatch
+  useEffect(() => {
+    // Generate random stars
+    const generatedStars = Array.from({ length: 200 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 2 + 1,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    }));
 
-  // Generate shooting stars
-  const shootingStars = Array.from({ length: 8 }).map((_, i) => ({
-    id: i,
-    startX: Math.random() * 100,
-    startY: Math.random() * 50,
-    duration: Math.random() * 2 + 1,
-    delay: i * 3,
-  }));
+    // Generate shooting stars
+    const generatedShootingStars = Array.from({ length: 8 }).map((_, i) => ({
+      id: i,
+      startX: Math.random() * 100,
+      startY: Math.random() * 50,
+      duration: Math.random() * 2 + 1,
+      delay: i * 3,
+    }));
+
+    // Generate dust particles
+    const generatedDustParticles = Array.from({ length: 50 }).map((_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      duration: Math.random() * 3 + 2,
+      delay: Math.random() * 2,
+    }));
+
+    setStars(generatedStars);
+    setShootingStars(generatedShootingStars);
+    setDustParticles(generatedDustParticles);
+  }, []);
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-gradient-to-b from-[#010b14] via-[#011627] to-black">
@@ -146,13 +165,13 @@ const CosmicBackground = () => {
       />
 
       {/* Cosmic dust particles */}
-      {Array.from({ length: 50 }).map((_, i) => (
+      {dustParticles.map((particle) => (
         <motion.div
-          key={`dust-${i}`}
+          key={`dust-${particle.id}`}
           className="absolute rounded-full"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${particle.x}%`,
+            top: `${particle.y}%`,
             width: '2px',
             height: '2px',
             backgroundColor: colors.accent,
@@ -163,9 +182,9 @@ const CosmicBackground = () => {
             scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: Math.random() * 3 + 2,
+            duration: particle.duration,
             repeat: Infinity,
-            delay: Math.random() * 2,
+            delay: particle.delay,
           }}
         />
       ))}

@@ -70,12 +70,20 @@ export const MusicPlayer = () => {
   const audioContextRef = useRef(null);
   const analyzerRef = useRef(null);
   const sourceRef = useRef(null);
+  const isConnectedRef = useRef(false); // Track if audio element is connected
+  const setupTimeoutRef = useRef(null); // For debouncing setup calls
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
 
   // Audio Visualizer Setup
   const cleanupAudioContext = () => {
+    // Clear any pending setup timeouts
+    if (setupTimeoutRef.current) {
+      clearTimeout(setupTimeoutRef.current);
+      setupTimeoutRef.current = null;
+    }
+    
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -99,11 +107,20 @@ export const MusicPlayer = () => {
       analyzerRef.current = null;
     }
     
+    // Reset connection tracking
+    isConnectedRef.current = false;
+    
     console.log('Audio context cleaned up');
   };
 
   const setupAudioContext = () => {
     if (!audioRef.current) return;
+    
+    // Prevent multiple simultaneous setup attempts
+    if (isConnectedRef.current) {
+      console.log('Audio element already connected, skipping setup');
+      return;
+    }
     
     try {
       // Complete cleanup first
@@ -132,15 +149,29 @@ export const MusicPlayer = () => {
       // Store references
       analyzerRef.current = analyzer;
       sourceRef.current = source;
+      isConnectedRef.current = true;
       
       console.log('Audio context setup/reconnection successful for:', currentTrack.title);
     } catch (error) {
       console.error('Error setting up audio context:', error);
-      // If createMediaElementSource fails, it's likely because source already exists
-      // Try to reuse existing context
-      if (error.name === 'InvalidStateError') {
-        console.log('Reusing existing audio context connection');
+      
+      // Handle the case where audio element is already connected
+      if (error.name === 'InvalidStateError' && error.message.includes('HTMLMediaElement already connected')) {
+        console.log('Audio element already connected to another source, cleaning up and retrying...');
+        
+        // Force cleanup and mark as not connected
+        isConnectedRef.current = false;
+        
+        // Try again after a short delay
+        setupTimeoutRef.current = setTimeout(() => {
+          setupAudioContext();
+        }, 100);
+        
+        return;
       }
+      
+      // Reset connection state on any error
+      isConnectedRef.current = false;
     }
   };
 
@@ -211,11 +242,24 @@ export const MusicPlayer = () => {
       }, 100);
     } else {
       // Ensure we have a valid analyzer connection
-      if (!analyzerRef.current && audioRef.current) {
+      if (!analyzerRef.current && audioRef.current && !isConnectedRef.current) {
         setupAudioContext();
       }
       drawVisualizer();
     }
+  };
+
+  // Debounced setup for rapid track changes
+  const debouncedSetupAudioContext = () => {
+    // Clear any existing timeout
+    if (setupTimeoutRef.current) {
+      clearTimeout(setupTimeoutRef.current);
+    }
+    
+    // Set up a new timeout
+    setupTimeoutRef.current = setTimeout(() => {
+      setupAudioContext();
+    }, 200); // Wait 200ms before setting up
   };
 
   const stopVisualizer = () => {
@@ -235,6 +279,9 @@ export const MusicPlayer = () => {
     return () => {
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (setupTimeoutRef.current) {
+        clearTimeout(setupTimeoutRef.current);
       }
       if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
@@ -256,12 +303,10 @@ export const MusicPlayer = () => {
     // When track changes and is playing, ensure visualizer is connected
     if (isPlaying && audioRef.current && audioContextRef.current) {
       // Check if we need to reconnect
-      if (!analyzerRef.current || !sourceRef.current) {
+      if (!analyzerRef.current || !sourceRef.current || !isConnectedRef.current) {
         console.log('Reconnecting visualizer for new audio element');
-        setTimeout(() => {
-          setupAudioContext();
-          startVisualizer();
-        }, 150); // Longer delay to ensure audio element is fully ready
+        // Use debounced setup to prevent rapid calls
+        debouncedSetupAudioContext();
       }
     }
   }, [currentTrackIndex, isPlaying]);
@@ -286,12 +331,10 @@ export const MusicPlayer = () => {
       setIsPlaying(true);
       
       // Ensure visualizer is connected when audio starts playing
-      if (audioContextRef.current && (!analyzerRef.current || !sourceRef.current)) {
+      if (audioContextRef.current && (!analyzerRef.current || !sourceRef.current || !isConnectedRef.current)) {
         console.log('Setting up visualizer connection on play');
-        setTimeout(() => {
-          setupAudioContext();
-          startVisualizer();
-        }, 50);
+        // Use debounced setup to prevent rapid calls
+        debouncedSetupAudioContext();
       }
     };
 
