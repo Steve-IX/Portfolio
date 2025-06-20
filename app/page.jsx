@@ -11,6 +11,16 @@ import { LightModeBackground } from '@/components/LightModeBackground';
 import { VisitCounter } from '@/components/VisitCounter';
 import { Globe3D } from '@/components/Globe3D';
 import { MusicPlayer } from '@/components/MusicPlayer';
+import { ScrollProgress } from '@/components/ScrollProgress';
+import { FloatingParticles } from '@/components/FloatingParticles';
+
+import { AchievementsShowcase } from '@/components/AchievementsShowcase';
+import { EnhancedContactForm } from '@/components/EnhancedContactForm';
+import { InteractiveCodeEditor } from '@/components/InteractiveCodeEditor';
+import { GitHubVisualizer } from '@/components/GitHubVisualizer';
+import { NeuralNetworkVisualizer } from '@/components/NeuralNetworkVisualizer';
+import { SkillsRadar3D } from '@/components/SkillsRadar3D';
+
 
 // -----------------------------
 //  SECTION COMPONENT
@@ -65,24 +75,24 @@ const CosmicBackground = () => {
   
   // Generate random values only on client-side to prevent hydration mismatch
   useEffect(() => {
-    // Generate random stars
+  // Generate random stars
     const generatedStars = Array.from({ length: 200 }).map((_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 2 + 1,
-      duration: Math.random() * 3 + 2,
-      delay: Math.random() * 2,
-    }));
+    id: i,
+    x: Math.random() * 100,
+    y: Math.random() * 100,
+    size: Math.random() * 2 + 1,
+    duration: Math.random() * 3 + 2,
+    delay: Math.random() * 2,
+  }));
 
-    // Generate shooting stars
+  // Generate shooting stars
     const generatedShootingStars = Array.from({ length: 8 }).map((_, i) => ({
-      id: i,
-      startX: Math.random() * 100,
-      startY: Math.random() * 50,
-      duration: Math.random() * 2 + 1,
-      delay: i * 3,
-    }));
+    id: i,
+    startX: Math.random() * 100,
+    startY: Math.random() * 50,
+    duration: Math.random() * 2 + 1,
+    delay: i * 3,
+  }));
 
     // Generate dust particles
     const generatedDustParticles = Array.from({ length: 50 }).map((_, i) => ({
@@ -205,9 +215,13 @@ const SpinningGlobe = () => {
 const links = [
   { id: 'home', label: 'Home' },
   { id: 'about', label: 'About' },
+  { id: 'achievements', label: 'Achievements' },
   { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Projects' },
   { id: 'skills', label: 'Skills' },
+  { id: 'code-playground', label: 'Code Lab' },
+  { id: 'ai-showcase', label: 'AI Showcase' },
+  { id: 'github-stats', label: 'GitHub' },
   { id: 'contact', label: 'Contact' },
 ];
 
@@ -454,16 +468,19 @@ export default function Portfolio() {
   const { theme, colors } = useTheme();
   
   return (
-    <div 
-      className="font-sans transition-colors duration-300" 
-      style={{ 
-        backgroundColor: colors.background,
-        color: colors.text
-      }}
-    >
-      <NavBar />
-      <VisitCounter />
-      <MusicPlayer />
+    <>
+      <div 
+        className="font-sans transition-colors duration-300" 
+        style={{ 
+          backgroundColor: colors.background,
+          color: colors.text
+        }}
+      >
+          <ScrollProgress />
+          <FloatingParticles count={30} />
+          <NavBar />
+          <VisitCounter />
+          <MusicPlayer />
 
       {/* HERO */}
       <section id="home" className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -478,29 +495,42 @@ export default function Portfolio() {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="text-center p-8 relative z-10 pointer-events-none"
         >
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-wider relative" style={{ color: colors.primary }}>
-            Stephen Addo
-            {/* Subtle glow effect */}
-            <div 
-              className="absolute inset-0 blur-3xl opacity-20 -z-10"
-              style={{ 
-                background: `linear-gradient(45deg, ${colors.primary}, ${colors.accent})`,
-              }}
-            />
-          </h1>
-          <p 
-            className="mt-4 text-xl md:text-2xl max-w-2xl mx-auto relative z-10"
-            style={{ color: colors.text }}
+          <motion.h1 
+            className="text-5xl md:text-7xl font-extrabold tracking-wider gradient-text float" 
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1, delay: 0.5, type: "spring", stiffness: 100 }}
           >
-            Software Engineer · AI & Quantum‑Computing Enthusiast · Final‑Year CS @ Lancaster University
-          </p>
-          <div className="mt-8 flex justify-center gap-4 relative z-10 pointer-events-auto">
+            Stephen Addo
+          </motion.h1>
+          <motion.div 
+            className="mt-6 text-xl md:text-2xl max-w-2xl mx-auto relative z-10 text-center"
+            style={{ color: colors.text }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2, duration: 0.8 }}
+          >
+            <div className="typing-animation">
+              Software Engineer · AI & Quantum‑Computing Enthusiast
+            </div>
+            <div className="mt-2 text-lg md:text-xl" style={{ color: colors.primary }}>
+              Final‑Year CS @ Lancaster University
+            </div>
+          </motion.div>
+          <motion.div 
+            className="mt-8 flex justify-center gap-4 relative z-10 pointer-events-auto"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.8, duration: 0.6 }}
+          >
             <Button 
               asChild 
               size="lg" 
+              className="btn-enhanced magnetic"
               style={{ 
-                backgroundColor: colors.accent,
-                color: theme === 'dark' ? '#ffffff' : '#ffffff' 
+                background: `linear-gradient(135deg, ${colors.accent}, ${colors.primary})`,
+                color: '#ffffff',
+                boxShadow: `0 8px 32px ${colors.accent}40`
               }}
             >
               <a href="#contact">Get in Touch</a>
@@ -509,14 +539,16 @@ export default function Portfolio() {
               asChild 
               variant="outline" 
               size="lg" 
+              className="btn-enhanced magnetic glass-card"
               style={{ 
                 borderColor: colors.primary,
-                color: colors.primary
+                color: colors.primary,
+                backgroundColor: theme === 'dark' ? `${colors.primary}15` : 'rgba(255,255,255,0.2)'
               }}
             >
               <a href="#projects">View Work</a>
             </Button>
-          </div>
+          </motion.div>
         </motion.div>
       </section>
 
@@ -532,7 +564,7 @@ export default function Portfolio() {
           <p className="text-lg leading-relaxed">
             My journey spans from <span className="font-semibold" style={{ color: colors.accent }}>low-level embedded systems</span> programming 
             on BBC micro:bits to exploring the cutting-edge frontiers of <span className="font-semibold" style={{ color: colors.primary }}>quantum computing</span> through 
-            my dissertation research. I've solved 700+ algorithmic challenges on LeetCode, refined large-language models at Outlier AI, 
+            my dissertation research. I've solved 63 algorithmic challenges on LeetCode, refined large-language models at Outlier AI, 
             and built everything from 3D physics simulations to genetic algorithm pathfinders. Whether I'm optimizing C++ performance, 
             implementing quantum algorithms with Qiskit, or crafting seamless user experiences with React, I thrive on transforming 
             complex problems into elegant, scalable solutions.
@@ -545,17 +577,22 @@ export default function Portfolio() {
         </div>
       </Section>
 
+      {/* ACHIEVEMENTS */}
+      <Section id="achievements" title="Achievements" direction="right">
+        <AchievementsShowcase />
+      </Section>
+
       {/* EXPERIENCE */}
       <Section id="experience" title="Experience" direction="right">
         <div className="space-y-6">
           {experiences.map(({ company, role, period, bullets, image }) => (
             <Card 
               key={company} 
-              className="transition-all duration-300 hover:scale-[1.02] cursor-pointer group"
+              className="enhanced-card transition-all duration-300 hover:scale-[1.02] cursor-pointer group magnetic glass-card"
               style={{ 
                 backgroundColor: theme === 'dark' ? `${colors.primary}1A` : colors.cardBg,
-                boxShadow: theme === 'dark' ? 'none' : '0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
-                borderColor: theme === 'dark' ? 'transparent' : '#e2e8f0'
+                boxShadow: theme === 'dark' ? `0 10px 40px ${colors.primary}20` : '0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
+                borderColor: theme === 'dark' ? `${colors.accent}30` : '#e2e8f0'
               }}
             >
               <CardContent className="p-6 space-y-4">
@@ -616,11 +653,11 @@ export default function Portfolio() {
           {projects.map(({ title, description, period, link, tech }) => (
             <Card 
               key={title} 
-              className="transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              className="enhanced-card transition-all duration-300 hover:scale-[1.02] cursor-pointer magnetic glass-card"
               style={{ 
                 backgroundColor: theme === 'dark' ? `${colors.primary}1A` : colors.cardBg,
-                boxShadow: theme === 'dark' ? 'none' : '0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
-                borderColor: theme === 'dark' ? 'transparent' : '#e2e8f0'
+                boxShadow: theme === 'dark' ? `0 10px 40px ${colors.primary}20` : '0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1)',
+                borderColor: theme === 'dark' ? `${colors.accent}30` : '#e2e8f0'
               }}
               onClick={() => link !== '#' && window.open(link, '_blank')}
             >
@@ -714,11 +751,12 @@ export default function Portfolio() {
                     className="relative group/skill"
                   >
                     <div
-                      className="px-4 py-3 rounded-lg text-center font-medium text-sm transition-all duration-300 cursor-pointer backdrop-blur-sm border border-opacity-30 hover:border-opacity-60 group-hover/skill:shadow-lg"
+                      className="px-4 py-3 rounded-lg text-center font-medium text-sm transition-all duration-300 cursor-pointer backdrop-blur-sm border border-opacity-30 hover:border-opacity-60 group-hover/skill:shadow-lg magnetic glass-card"
                       style={{ 
                         backgroundColor: theme === 'dark' ? `${colors.primary}15` : `${colors.primary}10`,
                         borderColor: colors.accent,
-                        color: theme === 'dark' ? 'white' : colors.text
+                        color: theme === 'dark' ? 'white' : colors.text,
+                        boxShadow: `0 4px 20px ${colors.accent}20`
                       }}
                     >
                       <span className="relative z-10">{skill}</span>
@@ -735,35 +773,91 @@ export default function Portfolio() {
         </div>
       </Section>
 
-      {/* CONTACT */}
-      <Section id="contact" title="Contact" direction="down">
-        <p className="mb-6">Feel free to reach out—I'm always open to new opportunities & collaborations.</p>
-        <div className="flex gap-6 justify-center">
-          <a href="mailto:a.stephenyeboah04@gmail.com" aria-label="Email" style={{ color: colors.primary }}>
-            <Mail size={32} />
-          </a>
-          <a href="https://github.com/Steve-IX" target="_blank" rel="noreferrer" aria-label="GitHub" style={{ color: colors.primary }}>
-            <Github size={32} />
-          </a>
-          <a href="https://linkedin.com/in/stephen-addo-568b43215" target="_blank" rel="noreferrer" aria-label="LinkedIn" style={{ color: colors.primary }}>
-            <Linkedin size={32} />
-          </a>
-          <a href="https://leetcode.com/u/SteveIX/" target="_blank" rel="noreferrer" aria-label="LeetCode" style={{ color: colors.primary }}>
-            <ExternalLink size={32} />
-          </a>
+      {/* CODE PLAYGROUND */}
+      <Section id="code-playground" title="Interactive Code Lab" direction="up">
+        <InteractiveCodeEditor />
+      </Section>
+
+      {/* AI SHOWCASE */}
+      <Section id="ai-showcase" title="AI & Neural Networks" direction="left">
+        <div className="space-y-16">
+          <NeuralNetworkVisualizer />
+          <SkillsRadar3D />
         </div>
       </Section>
 
-      {/* FOOTER */}
-      <footer 
-        className="py-6 text-center text-sm backdrop-blur"
-        style={{ 
-          backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(240,245,250,0.8)',
-          color: theme === 'dark' ? '#a0aec0' : colors.muted
-        }}
-      >
-        © {new Date().getFullYear()}  Stephen Addo · Built with ❤ & Persona‑style vibes · v1.2
-      </footer>
-    </div>
+      {/* GITHUB STATS */}
+      <Section id="github-stats" title="GitHub Analytics" direction="right">
+        <GitHubVisualizer />
+      </Section>
+
+      {/* CONTACT */}
+      <Section id="contact" title="Contact" direction="down">
+        <EnhancedContactForm />
+        <div className="mt-12 text-center">
+          <p className="mb-6 text-lg">Or connect with me on social platforms:</p>
+          <div className="flex gap-6 justify-center">
+            <motion.a 
+              href="mailto:a.stephenyeboah04@gmail.com" 
+              aria-label="Email" 
+              className="magnetic pulse-glow"
+              style={{ color: colors.primary }}
+              whileHover={{ scale: 1.2, rotate: 5 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Mail size={32} />
+            </motion.a>
+            <motion.a 
+              href="https://github.com/Steve-IX" 
+              target="_blank" 
+              rel="noreferrer" 
+              aria-label="GitHub" 
+              className="magnetic pulse-glow"
+              style={{ color: colors.primary }}
+              whileHover={{ scale: 1.2, rotate: -5 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Github size={32} />
+            </motion.a>
+            <motion.a 
+              href="https://linkedin.com/in/stephen-addo-568b43215" 
+              target="_blank" 
+              rel="noreferrer" 
+              aria-label="LinkedIn" 
+              className="magnetic pulse-glow"
+              style={{ color: colors.primary }}
+              whileHover={{ scale: 1.2, rotate: 5 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Linkedin size={32} />
+            </motion.a>
+            <motion.a 
+              href="https://leetcode.com/u/SteveIX/" 
+              target="_blank" 
+              rel="noreferrer" 
+              aria-label="LeetCode" 
+              className="magnetic pulse-glow"
+              style={{ color: colors.primary }}
+              whileHover={{ scale: 1.2, rotate: -5 }}
+              whileTap={{ scale: 0.9 }}
+            >
+              <ExternalLink size={32} />
+            </motion.a>
+          </div>
+        </div>
+      </Section>
+
+          {/* FOOTER */}
+          <footer 
+            className="py-6 text-center text-sm backdrop-blur glass-card"
+            style={{ 
+              backgroundColor: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(240,245,250,0.8)',
+              color: theme === 'dark' ? '#a0aec0' : colors.muted
+            }}
+          >
+            © {new Date().getFullYear()} Stephen Addo · Built with ❤️ Next.js & Modern Tech · 🚀 Interactive Code Lab · 🧠 Neural Networks · 📊 3D Visualizations · ✨ Enhanced Animations · v3.0
+          </footer>
+        </div>
+    </>
   );
 } 
