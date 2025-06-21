@@ -20,14 +20,6 @@ import { InteractiveCodeEditor } from '@/components/InteractiveCodeEditor';
 import { GitHubVisualizer } from '@/components/GitHubVisualizer';
 import { NeuralNetworkVisualizer } from '@/components/NeuralNetworkVisualizer';
 import { SkillsRadar3D } from '@/components/SkillsRadar3D';
-import { 
-  useLCPOptimization, 
-  useINPOptimization, 
-  usePagePerformanceOptimization,
-  measureWebVitals,
-  addResourceHints,
-  inlineCriticalCSS
-} from '@/lib/performanceOptimizations';
 
 
 // -----------------------------
@@ -475,31 +467,6 @@ const skillCategories = {
 export default function Portfolio() {
   const { theme, colors } = useTheme();
   
-  // Performance optimizations
-  useLCPOptimization();
-  useINPOptimization();
-  usePagePerformanceOptimization();
-  
-  // Initialize performance monitoring and optimizations
-  useEffect(() => {
-    // Add resource hints
-    addResourceHints();
-    
-    // Inline critical CSS
-    inlineCriticalCSS();
-    
-    // Start measuring Web Vitals
-    measureWebVitals();
-    
-    // Force immediate visibility of critical content
-    const criticalElements = document.querySelectorAll('.lcp-optimized, .hero-content');
-    criticalElements.forEach(el => {
-      el.style.opacity = '1';
-      el.style.transform = 'none';
-      el.style.visibility = 'visible';
-    });
-  }, []);
-  
   return (
     <>
       <div 
@@ -522,18 +489,26 @@ export default function Portfolio() {
         {/* Subtle Spinning Globe */}
         <SpinningGlobe />
         
-        <div className="text-center p-8 relative z-10 pointer-events-none hero-content lcp-optimized">
+        <motion.div
+          initial={{ opacity: 0, y: 60 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="text-center p-8 relative z-10 pointer-events-none"
+        >
           <motion.h1 
             className="text-5xl md:text-7xl font-extrabold tracking-wider gradient-text float" 
-            initial={{ scale: 0.95, opacity: 0.8 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.1, type: "spring", stiffness: 120 }}
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 1, delay: 0.5, type: "spring", stiffness: 100 }}
           >
             Stephen Addo
           </motion.h1>
-          <div 
-            className="mt-6 text-xl md:text-2xl max-w-2xl mx-auto relative z-10 text-center lcp-optimized"
+          <motion.div 
+            className="mt-6 text-xl md:text-2xl max-w-2xl mx-auto relative z-10 text-center"
             style={{ color: colors.text }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2, duration: 0.8 }}
           >
             <div className="typing-animation">
               Software Engineer · AI & Quantum‑Computing Enthusiast
@@ -541,12 +516,12 @@ export default function Portfolio() {
             <div className="mt-2 text-lg md:text-xl" style={{ color: colors.primary }}>
               Final‑Year CS @ Lancaster University
             </div>
-          </div>
+          </motion.div>
           <motion.div 
             className="mt-8 flex justify-center gap-4 relative z-10 pointer-events-auto"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.4 }}
+            transition={{ delay: 1.8, duration: 0.6 }}
           >
             <Button 
               asChild 
@@ -555,13 +530,10 @@ export default function Portfolio() {
               style={{ 
                 background: `linear-gradient(135deg, ${colors.accent}, ${colors.primary})`,
                 color: '#ffffff',
-                boxShadow: `0 8px 32px ${colors.accent}40`,
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitTapHighlightColor: 'transparent'
+                boxShadow: `0 8px 32px ${colors.accent}40`
               }}
             >
-              <a href="#contact" style={{ textDecoration: 'none', color: 'inherit' }}>Get in Touch</a>
+              <a href="#contact">Get in Touch</a>
             </Button>
             <Button 
               asChild 
@@ -571,16 +543,13 @@ export default function Portfolio() {
               style={{ 
                 borderColor: colors.primary,
                 color: colors.primary,
-                backgroundColor: theme === 'dark' ? `${colors.primary}15` : 'rgba(255,255,255,0.2)',
-                touchAction: 'manipulation',
-                userSelect: 'none',
-                WebkitTapHighlightColor: 'transparent'
+                backgroundColor: theme === 'dark' ? `${colors.primary}15` : 'rgba(255,255,255,0.2)'
               }}
             >
-              <a href="#projects" style={{ textDecoration: 'none', color: 'inherit' }}>View Work</a>
+              <a href="#projects">View Work</a>
             </Button>
           </motion.div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ABOUT */}

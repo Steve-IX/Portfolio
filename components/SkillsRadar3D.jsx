@@ -6,18 +6,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/ThemeContext';
 import { TrendingUp, Award, Code, Database, Cpu, Globe, BarChart3, Target } from 'lucide-react';
-import { getPerformanceSettings, createPerformanceObserver } from '@/lib/mobileOptimization';
 
 export const SkillsRadar3D = () => {
   const { theme, colors } = useTheme();
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const observerRef = useRef(null);
-  const lastDrawTime = useRef(0);
   const [activeTab, setActiveTab] = useState('radar');
   const [hoveredSkill, setHoveredSkill] = useState(null);
-  const [performanceSettings, setPerformanceSettings] = useState(null);
-  const [isVisible, setIsVisible] = useState(true);
 
   const skillCategories = {
     'Programming Languages': [
@@ -45,49 +40,18 @@ export const SkillsRadar3D = () => {
   const totalProjects = allSkills.reduce((sum, skill) => sum + skill.projects, 0);
   const expertSkills = allSkills.filter(skill => skill.level >= 90).length;
 
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
-  }, []);
-
-  // Setup intersection observer for the radar canvas
-  useEffect(() => {
-    if (!performanceSettings || !canvasRef.current) return;
-
-    const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        setIsVisible(entry.isIntersecting);
-      });
-    };
-
-    observerRef.current = createPerformanceObserver(handleIntersection);
-    
-    if (observerRef.current && canvasRef.current) {
-      observerRef.current.observe(canvasRef.current);
-    }
-
-    return () => {
-      if (observerRef.current && canvasRef.current) {
-        observerRef.current.unobserve(canvasRef.current);
-      }
-    };
-  }, [performanceSettings]);
-
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !performanceSettings) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return; // Fix: Check if context exists
     
     // Fix: Add error handling for canvas operations
     try {
-      // Use High DPI only on desktop for better performance
-      const dpiScale = performanceSettings.canvasHighDPI ? 2 : 1;
-      canvas.width = canvas.offsetWidth * dpiScale;
-      canvas.height = canvas.offsetHeight * dpiScale;
-      ctx.scale(dpiScale, dpiScale);
+    canvas.width = canvas.offsetWidth * 2; // High DPI
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
     } catch (error) {
       console.error('Canvas initialization error:', error);
       return;
@@ -101,25 +65,12 @@ export const SkillsRadar3D = () => {
     let isAnimating = true;
 
     const draw = () => {
-      if (!isAnimating || !canvas || !ctx || !isVisible) return; // Fix: Check animation state and canvas validity
+      if (!isAnimating || !canvas || !ctx) return; // Fix: Check animation state and canvas validity
       
       try {
-        // Throttle drawing based on performance settings
-        const now = performance.now();
-        const timeDelta = now - lastDrawTime.current;
-        const targetFrameTime = 1000 / performanceSettings.canvasFrameRate;
-        
-        if (timeDelta < targetFrameTime) {
-          if (isAnimating && isVisible) {
-            animationRef.current = requestAnimationFrame(draw);
-          }
-          return;
-        }
-        
-        lastDrawTime.current = now;
-        
+        // Always continue animation regardless of active tab
       ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-      time += performanceSettings.isMobile ? 0.005 : 0.01; // Slower animation on mobile
+      time += 0.01;
 
       // Draw concentric circles (skill levels)
       const levels = [20, 40, 60, 80, 100];
@@ -212,18 +163,16 @@ export const SkillsRadar3D = () => {
         const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
         const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
         
-        // Glow effect - only on desktop for better performance
-        if (performanceSettings.enableGradients && !performanceSettings.isMobile) {
-          const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
-          const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
-          gradient.addColorStop(0, `${skill.color}80`);
-          gradient.addColorStop(1, `${skill.color}00`);
-          
-          ctx.beginPath();
-          ctx.fillStyle = gradient;
-          ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
-          ctx.fill();
-        }
+        // Glow effect
+        const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+        gradient.addColorStop(0, `${skill.color}80`);
+        gradient.addColorStop(1, `${skill.color}00`);
+        
+        ctx.beginPath();
+        ctx.fillStyle = gradient;
+        ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
         
         // Skill point
         ctx.beginPath();
@@ -238,9 +187,9 @@ export const SkillsRadar3D = () => {
         ctx.fill();
       });
 
-        // Continue animation only when visible and tab is active
-        if (isAnimating && isVisible && activeTab === 'radar') {
-          animationRef.current = requestAnimationFrame(draw);
+        // Continue animation regardless of active tab
+        if (isAnimating) {
+      animationRef.current = requestAnimationFrame(draw);
         }
       } catch (error) {
         console.error('Canvas drawing error:', error);
@@ -258,7 +207,7 @@ export const SkillsRadar3D = () => {
         animationRef.current = null;
       }
     };
-  }, [theme, colors, allSkills, performanceSettings, isVisible, activeTab]); // Added performance dependencies
+  }, [theme, colors, allSkills]); // Added allSkills to dependencies to ensure updates
 
   // Separate effect to handle tab changes and ensure radar visibility
   useEffect(() => {
