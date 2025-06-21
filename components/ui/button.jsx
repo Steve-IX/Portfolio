@@ -29,12 +29,45 @@ const buttonVariants = cva(
   }
 )
 
-const Button = React.forwardRef(({ className, variant, size, asChild = false, ...props }, ref) => {
+const Button = React.forwardRef(({ className, variant, size, asChild = false, onClick, ...props }, ref) => {
   const Comp = asChild ? Slot : "button"
+  
+  // Debounced click handler to prevent rapid clicks causing INP issues
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  
+  const handleClick = React.useCallback((event) => {
+    if (isProcessing || !onClick) return;
+    
+    setIsProcessing(true);
+    
+    // Use requestIdleCallback for non-critical operations
+    const timeoutId = setTimeout(() => {
+      setIsProcessing(false);
+    }, 100); // 100ms debounce
+    
+    try {
+      onClick(event);
+    } catch (error) {
+      console.error('Button click error:', error);
+      setIsProcessing(false);
+      clearTimeout(timeoutId);
+    }
+  }, [onClick, isProcessing]);
+
   return (
     <Comp
       className={cn(buttonVariants({ variant, size, className }))}
       ref={ref}
+      onClick={handleClick}
+      style={{
+        // Optimize for better interaction performance
+        touchAction: 'manipulation',
+        userSelect: 'none',
+        WebkitTapHighlightColor: 'transparent',
+        // Prevent layout shifts during interactions
+        willChange: 'auto',
+        ...props.style
+      }}
       {...props}
     />
   )

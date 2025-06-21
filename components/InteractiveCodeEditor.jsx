@@ -6,9 +6,11 @@ import { Play, RotateCcw, Download, Copy, Check, Terminal, Code2 } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from '@/lib/ThemeContext';
+import { getPerformanceSettings, throttle } from '@/lib/mobileOptimization';
 
 export const InteractiveCodeEditor = () => {
   const { theme, colors } = useTheme();
+  const [performanceSettings, setPerformanceSettings] = useState(null);
   const [code, setCode] = useState(`// Welcome to my Interactive Code Playground!
 // Try editing this JavaScript code and click Run!
 
@@ -56,6 +58,12 @@ createArt();`);
   const activeAnimationsRef = useRef(new Set());
   const activeTimeoutsRef = useRef(new Set());
   const activeIntervalsRef = useRef(new Set());
+
+  // Initialize performance settings
+  useEffect(() => {
+    const settings = getPerformanceSettings();
+    setPerformanceSettings(settings);
+  }, []);
 
   // Enhanced cleanup function to stop all animations
   const cleanup = () => {

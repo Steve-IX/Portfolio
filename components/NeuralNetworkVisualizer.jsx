@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Brain, Zap, Activity } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from '@/lib/ThemeContext';
+import { getPerformanceSettings, createPerformanceObserver } from '@/lib/mobileOptimization';
 
 export const NeuralNetworkVisualizer = () => {
   const { theme, colors } = useTheme();

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, SkipForward } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeContext';
+import { getPerformanceSettings, throttle, createPerformanceObserver } from '@/lib/mobileOptimization';
 
 export const MusicPlayer = () => {
   // Original playlist of tracks - add new songs here!
@@ -98,6 +99,8 @@ export const MusicPlayer = () => {
   const [error, setError] = useState(null);
   const [coverArtLoaded, setCoverArtLoaded] = useState(false);
   const [coverArtError, setCoverArtError] = useState(false);
+  const [performanceSettings, setPerformanceSettings] = useState(null);
+  const [isVisible, setIsVisible] = useState(true);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -106,9 +109,38 @@ export const MusicPlayer = () => {
   const sourceRef = useRef(null);
   const isConnectedRef = useRef(false); // Track if audio element is connected
   const setupTimeoutRef = useRef(null); // For debouncing setup calls
+  const observerRef = useRef(null);
+  const lastDrawTime = useRef(0);
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
+
+  // Initialize performance settings
+  useEffect(() => {
+    const settings = getPerformanceSettings();
+    setPerformanceSettings(settings);
+    console.log('🎵 Performance settings loaded:', settings);
+  }, []);
+
+  // Setup intersection observer for the music player
+  useEffect(() => {
+    if (!performanceSettings) return;
+
+    const handleIntersection = (entries) => {
+      entries.forEach((entry) => {
+        setIsVisible(entry.isIntersecting);
+      });
+    };
+
+    observerRef.current = createPerformanceObserver(handleIntersection);
+    
+    // We'll set up the observer on the canvas element when it's available
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [performanceSettings]);
 
   // Shuffle playlist after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -218,7 +250,19 @@ export const MusicPlayer = () => {
   };
 
   const drawVisualizer = () => {
-    if (!canvasRef.current || !analyzerRef.current) return;
+    if (!canvasRef.current || !analyzerRef.current || !performanceSettings || !isVisible) return;
+    
+    // Throttle drawing based on performance settings
+    const now = performance.now();
+    const timeDelta = now - lastDrawTime.current;
+    const targetFrameTime = 1000 / performanceSettings.canvasFrameRate;
+    
+    if (timeDelta < targetFrameTime) {
+      animationFrameRef.current = requestAnimationFrame(drawVisualizer);
+      return;
+    }
+    
+    lastDrawTime.current = now;
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -234,11 +278,13 @@ export const MusicPlayer = () => {
     
     ctx.clearRect(0, 0, width, height);
     
+    // Use performance-optimized bar count
+    const barCount = performanceSettings.visualizerBars;
+    const barWidth = width / barCount;
+    const dataStep = Math.floor(bufferLength / barCount);
+    
     if (!isPlaying) {
       // Show static bars when not playing
-      const barCount = 32;
-      const barWidth = width / barCount;
-      
       for (let i = 0; i < barCount; i++) {
         const barHeight = 2;
         const x = i * barWidth;
@@ -251,26 +297,29 @@ export const MusicPlayer = () => {
     }
     
     // Dynamic visualization when playing
-    const barCount = 32;
-    const barWidth = width / barCount;
-    const dataStep = Math.floor(bufferLength / barCount);
-    
     for (let i = 0; i < barCount; i++) {
       const dataIndex = i * dataStep;
       const barHeight = Math.max(2, (dataArray[dataIndex] / 255) * height * 0.8);
       const x = i * barWidth;
       const y = height - barHeight;
       
-      // Create gradient effect
-      const gradient = ctx.createLinearGradient(0, height, 0, 0);
-      gradient.addColorStop(0, colors.primary);
-      gradient.addColorStop(1, `${colors.primary}40`);
+      // Use gradients only if performance allows
+      if (performanceSettings.enableGradients && !performanceSettings.isMobile) {
+        const gradient = ctx.createLinearGradient(0, height, 0, 0);
+        gradient.addColorStop(0, colors.primary);
+        gradient.addColorStop(1, `${colors.primary}40`);
+        ctx.fillStyle = gradient;
+      } else {
+        // Use solid color for better performance
+        ctx.fillStyle = colors.primary;
+      }
       
-      ctx.fillStyle = gradient;
       ctx.fillRect(x, y, barWidth - 1, barHeight);
     }
     
-    animationFrameRef.current = requestAnimationFrame(drawVisualizer);
+    if (isVisible) {
+      animationFrameRef.current = requestAnimationFrame(drawVisualizer);
+    }
   };
 
   const startVisualizer = () => {
@@ -875,7 +924,11 @@ export const MusicPlayer = () => {
                     <button
                       onClick={previousTrack}
                       className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none"
-                      style={{ backgroundColor: `${colors.primary}20` }}
+                      style={{ 
+                        backgroundColor: `${colors.primary}20`,
+                        touchAction: 'manipulation',
+                        userSelect: 'none'
+                      }}
                       type="button"
                       title="Previous Track"
                       disabled={playlist.length <= 1}
@@ -889,7 +942,10 @@ export const MusicPlayer = () => {
                       className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
                       style={{ 
                         backgroundColor: colors.primary,
-                        opacity: error ? 0.5 : 1
+                        opacity: error ? 0.5 : 1,
+                        touchAction: 'manipulation',
+                        userSelect: 'none',
+                        WebkitTapHighlightColor: 'transparent'
                       }}
                       type="button"
                       title={isPlaying ? 'Pause' : 'Play'}
@@ -905,7 +961,11 @@ export const MusicPlayer = () => {
                     <button
                       onClick={nextTrack}
                       className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none"
-                      style={{ backgroundColor: `${colors.primary}20` }}
+                      style={{ 
+                        backgroundColor: `${colors.primary}20`,
+                        touchAction: 'manipulation',
+                        userSelect: 'none'
+                      }}
                       type="button"
                       title="Next Track"
                       disabled={playlist.length <= 1}

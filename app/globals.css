@@ -108,25 +108,84 @@
   transform-origin: 0%;
 }
 
-/* Typing animation */
+/* Typing animation - OPTIMIZED FOR LCP */
 .typing-animation {
   overflow: hidden;
   border-right: .15em solid currentColor;
   margin: 0 auto;
   letter-spacing: .15em;
+  /* Reduced animation duration from 3.5s to 1.5s for faster LCP */
   animation: 
-    typing 3.5s steps(40, end),
+    typing 1.5s steps(30, end),
     blink-caret .75s step-end infinite;
+  /* Ensure immediate visibility */
+  width: 100%;
+  opacity: 1;
+  /* Use GPU acceleration */
+  will-change: width;
+  transform: translateZ(0);
 }
 
+/* Optimized keyframes for better performance */
 @keyframes typing {
-  from { width: 0 }
-  to { width: 100% }
+  from { 
+    width: 0;
+    opacity: 1; /* Ensure visibility from start */
+  }
+  to { 
+    width: 100%;
+    opacity: 1;
+  }
 }
 
 @keyframes blink-caret {
-  from, to { border-color: transparent }
-  50% { border-color: currentColor; }
+  from, to { 
+    border-color: transparent;
+  }
+  50% { 
+    border-color: currentColor;
+  }
+}
+
+/* Immediate loading optimization for critical content */
+.hero-content {
+  /* Ensure hero content is immediately visible */
+  opacity: 1 !important;
+  transform: none !important;
+  /* Optimize for LCP */
+  contain: layout style paint;
+  content-visibility: auto;
+}
+
+/* LCP optimization - preload critical elements */
+.lcp-optimized {
+  /* Critical content should be immediately visible */
+  opacity: 1 !important;
+  visibility: visible !important;
+  /* Use contain for better performance */
+  contain: layout style paint;
+  /* Optimize rendering */
+  will-change: auto;
+}
+
+/* Reduce motion for typing animation on mobile */
+@media (max-width: 768px) {
+  .typing-animation {
+    /* Faster animation on mobile */
+    animation: 
+      typing 1s steps(20, end),
+      blink-caret .5s step-end infinite;
+  }
+  
+  /* For users who prefer reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    .typing-animation {
+      animation: none;
+      border-right: none;
+      width: 100%;
+      opacity: 1;
+    }
+  }
 }
 
 /* Custom range slider styling */
@@ -278,4 +337,114 @@ input[type="range"]::-moz-range-thumb {
 ::-moz-selection {
   background: rgba(0, 210, 255, 0.3);
   color: inherit;
+}
+
+/* Mobile Performance Optimizations */
+@media (max-width: 768px) {
+  /* Reduce GPU usage on mobile */
+  * {
+    /* Disable expensive CSS features that can cause performance issues */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+  }
+  
+  /* Optimize animations */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.2s !important;
+    animation-delay: 0s !important;
+    transition-duration: 0.2s !important;
+    transition-delay: 0s !important;
+  }
+  
+  /* Reduce blur effects that are expensive on mobile */
+  .glass-card {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+  }
+  
+  /* Optimize will-change property usage */
+  .particles-container * {
+    will-change: auto !important;
+  }
+  
+  /* Disable complex gradients on mobile */
+  .gradient-text {
+    background: linear-gradient(90deg, #3b82f6, #06b6d4) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+  }
+  
+  /* Optimize button interactions */
+  button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  /* Reduce motion for users who prefer it */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transform: none !important;
+    }
+    
+    /* Disable floating particles */
+    .particles-container {
+      display: none !important;
+    }
+  }
+}
+
+/* Low-end device optimizations */
+@media (max-width: 480px) {
+  /* More aggressive optimizations for very small screens */
+  canvas {
+    image-rendering: optimizeSpeed !important;
+    image-rendering: -moz-crisp-edges !important;
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: optimize-contrast !important;
+  }
+  
+  /* Reduce complex selectors */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+}
+
+/* Performance hints for browsers */
+.performance-optimized {
+  contain: layout style paint;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 500px;
+}
+
+/* Optimize canvas rendering */
+canvas {
+  /* Hint to browser about rendering performance */
+  image-rendering: auto;
+  will-change: contents;
+}
+
+/* Optimize motion components */
+[data-motion] {
+  /* Only use will-change when actually animating */
+  will-change: auto;
+}
+
+[data-motion]:hover,
+[data-motion]:focus,
+[data-motion]:active {
+  will-change: transform, opacity;
 } 
