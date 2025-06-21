@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, SkipForward } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeContext';
-import { getPerformanceSettings, throttle, createPerformanceObserver, getResponsiveScale, createTouchOptimizedHandler } from '@/lib/mobileOptimization';
 
 export const MusicPlayer = () => {
   // Original playlist of tracks - add new songs here!
@@ -99,8 +98,6 @@ export const MusicPlayer = () => {
   const [error, setError] = useState(null);
   const [coverArtLoaded, setCoverArtLoaded] = useState(false);
   const [coverArtError, setCoverArtError] = useState(false);
-  const [performanceSettings, setPerformanceSettings] = useState(null);
-  const [isVisible, setIsVisible] = useState(true);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -109,38 +106,9 @@ export const MusicPlayer = () => {
   const sourceRef = useRef(null);
   const isConnectedRef = useRef(false); // Track if audio element is connected
   const setupTimeoutRef = useRef(null); // For debouncing setup calls
-  const observerRef = useRef(null);
-  const lastDrawTime = useRef(0);
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
-
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
-    console.log('🎵 Performance settings loaded:', settings);
-  }, []);
-
-  // Setup intersection observer for the music player
-  useEffect(() => {
-    if (!performanceSettings) return;
-
-    const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        setIsVisible(entry.isIntersecting);
-      });
-    };
-
-    observerRef.current = createPerformanceObserver(handleIntersection);
-    
-    // We'll set up the observer on the canvas element when it's available
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [performanceSettings]);
 
   // Shuffle playlist after component mounts to avoid hydration mismatch
   useEffect(() => {
@@ -250,19 +218,7 @@ export const MusicPlayer = () => {
   };
 
   const drawVisualizer = () => {
-    if (!canvasRef.current || !analyzerRef.current || !performanceSettings || !isVisible) return;
-    
-    // Throttle drawing based on performance settings
-    const now = performance.now();
-    const timeDelta = now - lastDrawTime.current;
-    const targetFrameTime = 1000 / performanceSettings.canvasFrameRate;
-    
-    if (timeDelta < targetFrameTime) {
-      animationFrameRef.current = requestAnimationFrame(drawVisualizer);
-      return;
-    }
-    
-    lastDrawTime.current = now;
+    if (!canvasRef.current || !analyzerRef.current) return;
     
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -278,14 +234,11 @@ export const MusicPlayer = () => {
     
     ctx.clearRect(0, 0, width, height);
     
-    // Use responsive bar count with scaling
-    const barCount = performanceSettings.visualizerBars;
-    const barWidth = width / barCount;
-    const dataStep = Math.floor(bufferLength / barCount);
-    const visualizerHeight = height * performanceSettings.visualizerHeight;
-      
     if (!isPlaying) {
       // Show static bars when not playing
+      const barCount = 32;
+      const barWidth = width / barCount;
+      
       for (let i = 0; i < barCount; i++) {
         const barHeight = 2;
         const x = i * barWidth;
@@ -297,29 +250,27 @@ export const MusicPlayer = () => {
       return;
     }
     
-    // Dynamic visualization when playing - responsive scaling
+    // Dynamic visualization when playing
+    const barCount = 32;
+    const barWidth = width / barCount;
+    const dataStep = Math.floor(bufferLength / barCount);
+    
     for (let i = 0; i < barCount; i++) {
       const dataIndex = i * dataStep;
-      const barHeight = Math.max(2, (dataArray[dataIndex] / 255) * visualizerHeight * 0.8);
+      const barHeight = Math.max(2, (dataArray[dataIndex] / 255) * height * 0.8);
       const x = i * barWidth;
       const y = height - barHeight;
       
-      // Use gradients with responsive complexity
-      if (performanceSettings.enableGradients) {
-        const gradient = ctx.createLinearGradient(0, height, 0, 0);
-        gradient.addColorStop(0, colors.primary);
-        gradient.addColorStop(1, `${colors.primary}${Math.floor(performanceSettings.gradientComplexity * 64).toString(16)}`);
-        ctx.fillStyle = gradient;
-      } else {
-        ctx.fillStyle = colors.primary;
-      }
+      // Create gradient effect
+      const gradient = ctx.createLinearGradient(0, height, 0, 0);
+      gradient.addColorStop(0, colors.primary);
+      gradient.addColorStop(1, `${colors.primary}40`);
       
+      ctx.fillStyle = gradient;
       ctx.fillRect(x, y, barWidth - 1, barHeight);
     }
     
-    if (isVisible) {
     animationFrameRef.current = requestAnimationFrame(drawVisualizer);
-    }
   };
 
   const startVisualizer = () => {
@@ -594,8 +545,7 @@ export const MusicPlayer = () => {
     return () => clearTimeout(initTimer);
   }, []); // Only run on mount
 
-  // Touch-optimized play toggle
-  const togglePlay = createTouchOptimizedHandler(async () => {
+  const togglePlay = useCallback(async () => {
     if (!audioRef.current) {
       console.error('Audio element not found');
       return;
@@ -603,65 +553,74 @@ export const MusicPlayer = () => {
 
     const audio = audioRef.current;
 
-    try {
-      if (isPlaying) {
-        console.log('Attempting to pause audio');
-        audio.pause();
-      } else {
-        console.log('Attempting to play audio');
-        
-        // If minimized and about to play, expand the player
-        if (isMinimized) {
-          setIsMinimized(false);
-        }
-        
-        // Check if audio is ready
-        if (audio.readyState < 2) {
-          console.log('Audio not ready, waiting for load...');
-          setError('Loading audio...');
-          return;
-        }
+    // Use scheduler.postTask for better INP if available, fallback to immediate execution
+    const performToggle = async () => {
+      try {
+        if (isPlaying) {
+          console.log('Attempting to pause audio');
+          audio.pause();
+        } else {
+          console.log('Attempting to play audio');
+          
+          // If minimized and about to play, expand the player
+          if (isMinimized) {
+            setIsMinimized(false);
+          }
+          
+          // Check if audio is ready
+          if (audio.readyState < 2) {
+            console.log('Audio not ready, waiting for load...');
+            setError('Loading audio...');
+            return;
+          }
 
-        // Resume audio context if suspended (required by browsers)
-        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
-          await audioContextRef.current.resume();
-        }
-        
-        // Setup audio context on first play if not already setup
-        if (!audioContextRef.current) {
-          setupAudioContext();
-        }
+          // Resume audio context if suspended (required by browsers)
+          if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+            await audioContextRef.current.resume();
+          }
+          
+          // Setup audio context on first play if not already setup
+          if (!audioContextRef.current) {
+            setupAudioContext();
+          }
 
-        // Clear any previous error
-        setError(null);
-        
-        // Play the audio
-        await audio.play();
-        console.log('Audio play successful');
+          // Clear any previous error
+          setError(null);
+          
+          // Play the audio
+          await audio.play();
+          console.log('Audio play successful');
+        }
+      } catch (error) {
+        console.error('Error toggling play:', error);
+        setError('Playback failed - try clicking again');
+        setIsPlaying(false);
       }
-    } catch (error) {
-      console.error('Error toggling play:', error);
-      setError('Playback failed - try clicking again');
-      setIsPlaying(false);
-    }
-  }, { debounce: performanceSettings?.touchOptimization ? 150 : 50 });
+    };
 
-  // Touch-optimized track navigation
-  const nextTrack = createTouchOptimizedHandler(() => {
+    if ('scheduler' in window && 'postTask' in window.scheduler) {
+      window.scheduler.postTask(performToggle, { priority: 'user-blocking' });
+    } else {
+      // Fallback to immediate execution for better compatibility
+      await performToggle();
+    }
+  }, [isPlaying, isMinimized]);
+
+  const nextTrack = () => {
     if (currentTrackIndex < playlist.length - 1) {
       setCurrentTrackIndex(currentTrackIndex + 1);
     } else {
       setCurrentTrackIndex(0); // Loop to first track
     }
-  }, { debounce: performanceSettings?.touchOptimization ? 200 : 100 });
+  };
 
-  const previousTrack = createTouchOptimizedHandler(() => {
+  const previousTrack = () => {
     if (currentTrackIndex > 0) {
       setCurrentTrackIndex(currentTrackIndex - 1);
     } else {
       setCurrentTrackIndex(playlist.length - 1); // Loop to last track
     }
-  }, { debounce: performanceSettings?.touchOptimization ? 200 : 100 });
+  };
 
   const handleProgressClick = (e) => {
     e.preventDefault();
@@ -703,14 +662,34 @@ export const MusicPlayer = () => {
     setIsMinimized(!isMinimized);
   };
 
-  const formatTime = (time) => {
+  const formatTime = useCallback((time) => {
     if (isNaN(time)) return '0:00';
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
+  }, []);
 
-  const progressPercentage = duration ? (currentTime / duration) * 100 : 0;
+  const progressPercentage = useMemo(() => {
+    return duration ? (currentTime / duration) * 100 : 0;
+  }, [currentTime, duration]);
+
+  // Memoize button styles for better performance
+  const playButtonStyle = useMemo(() => ({
+    backgroundColor: colors.primary,
+    opacity: error ? 0.5 : 1,
+    // CSS containment for better rendering performance
+    contain: 'layout style paint',
+    // Hardware acceleration
+    transform: 'translateZ(0)',
+    willChange: 'transform',
+  }), [colors.primary, error]);
+
+  const controlButtonStyle = useMemo(() => ({
+    backgroundColor: `${colors.primary}20`,
+    // CSS containment for better rendering performance
+    contain: 'layout style paint',
+    transform: 'translateZ(0)',
+  }), [colors.primary]);
 
   return (
     <>
@@ -926,14 +905,11 @@ export const MusicPlayer = () => {
                     <button
                       onClick={previousTrack}
                       className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none"
-                      style={{ 
-                        backgroundColor: `${colors.primary}20`,
-                        touchAction: 'manipulation',
-                        userSelect: 'none'
-                      }}
+                      style={controlButtonStyle}
                       type="button"
                       title="Previous Track"
                       disabled={playlist.length <= 1}
+                      onPointerDown={(e) => e.preventDefault()}
                     >
                       <SkipBack size={14} style={{ color: colors.primary, opacity: playlist.length <= 1 ? 0.5 : 1 }} />
                     </button>
@@ -942,15 +918,10 @@ export const MusicPlayer = () => {
                     <button
                       onClick={togglePlay}
                       className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2"
-                      style={{ 
-                        backgroundColor: colors.primary,
-                        opacity: error ? 0.5 : 1,
-                        touchAction: 'manipulation',
-                        userSelect: 'none',
-                        WebkitTapHighlightColor: 'transparent'
-                      }}
+                      style={playButtonStyle}
                       type="button"
                       title={isPlaying ? 'Pause' : 'Play'}
+                      onPointerDown={(e) => e.preventDefault()}
                     >
                       {isPlaying ? (
                         <Pause size={18} color="white" />
@@ -963,14 +934,11 @@ export const MusicPlayer = () => {
                     <button
                       onClick={nextTrack}
                       className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none"
-                      style={{ 
-                        backgroundColor: `${colors.primary}20`,
-                        touchAction: 'manipulation',
-                        userSelect: 'none'
-                      }}
+                      style={controlButtonStyle}
                       type="button"
                       title="Next Track"
                       disabled={playlist.length <= 1}
+                      onPointerDown={(e) => e.preventDefault()}
                     >
                       <SkipForward size={14} style={{ color: colors.primary, opacity: playlist.length <= 1 ? 0.5 : 1 }} />
                     </button>
@@ -1015,12 +983,10 @@ export const MusicPlayer = () => {
                 <button
                   onClick={togglePlay}
                   className="flex items-center justify-center w-8 h-8 rounded-full transition-all duration-200 hover:scale-105 focus:outline-none"
-                  style={{ 
-                    backgroundColor: colors.primary,
-                    opacity: error ? 0.5 : 1
-                  }}
+                  style={playButtonStyle}
                   type="button"
                   title={isPlaying ? 'Pause' : 'Play'}
+                  onPointerDown={(e) => e.preventDefault()}
                 >
                   {isPlaying ? (
                     <Pause size={16} color="white" />

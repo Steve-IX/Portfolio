@@ -1,23 +1,20 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/lib/ThemeContext';
 import { TrendingUp, Award, Code, Database, Cpu, Globe, BarChart3, Target } from 'lucide-react';
-import { getPerformanceSettings, createPerformanceObserver, getResponsiveScale } from '@/lib/mobileOptimization';
+import { scheduleUserBlockingTask, throttleEvent } from '@/lib/performanceUtils';
 
 export const SkillsRadar3D = () => {
   const { theme, colors } = useTheme();
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
-  const observerRef = useRef(null);
-  const lastDrawTime = useRef(0);
   const [activeTab, setActiveTab] = useState('radar');
   const [hoveredSkill, setHoveredSkill] = useState(null);
-  const [performanceSettings, setPerformanceSettings] = useState(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const skillCategories = {
     'Programming Languages': [
@@ -40,246 +37,244 @@ export const SkillsRadar3D = () => {
     ]
   };
 
-  const allSkills = Object.values(skillCategories).flat();
-  const avgSkillLevel = Math.round(allSkills.reduce((sum, skill) => sum + skill.level, 0) / allSkills.length);
-  const totalProjects = allSkills.reduce((sum, skill) => sum + skill.projects, 0);
-  const expertSkills = allSkills.filter(skill => skill.level >= 90).length;
+  // Memoize calculated values to prevent recalculation
+  const allSkills = useMemo(() => Object.values(skillCategories).flat(), [skillCategories]);
+  const avgSkillLevel = useMemo(() => 
+    Math.round(allSkills.reduce((sum, skill) => sum + skill.level, 0) / allSkills.length), 
+    [allSkills]
+  );
+  const totalProjects = useMemo(() => 
+    allSkills.reduce((sum, skill) => sum + skill.projects, 0), 
+    [allSkills]
+  );
+  const expertSkills = useMemo(() => 
+    allSkills.filter(skill => skill.level >= 90).length, 
+    [allSkills]
+  );
 
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
+  // Optimized tab switching handler
+  const handleTabChange = useCallback((tab) => {
+    scheduleUserBlockingTask(() => {
+      setActiveTab(tab);
+    });
   }, []);
 
-  // Setup intersection observer for the radar canvas
-  useEffect(() => {
-    if (!performanceSettings || !canvasRef.current) return;
-
-    const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        setIsVisible(entry.isIntersecting);
-      });
-    };
-
-    observerRef.current = createPerformanceObserver(handleIntersection);
-    
-    if (observerRef.current && canvasRef.current) {
-      observerRef.current.observe(canvasRef.current);
-    }
-
-    return () => {
-      if (observerRef.current && canvasRef.current) {
-        observerRef.current.unobserve(canvasRef.current);
-      }
-    };
-  }, [performanceSettings]);
-
+  // Enhanced canvas setup and animation with proper tab handling
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !performanceSettings) return;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return; // Fix: Check if context exists
+    if (!ctx) return;
     
-    // Fix: Add error handling for canvas operations
-    try {
-      // Use High DPI only on desktop for better performance
-      const dpiScale = performanceSettings.canvasHighDPI ? 2 : 1;
-      canvas.width = canvas.offsetWidth * dpiScale;
-      canvas.height = canvas.offsetHeight * dpiScale;
-      ctx.scale(dpiScale, dpiScale);
-    } catch (error) {
-      console.error('Canvas initialization error:', error);
+    // Always clean up previous animation first
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+    setIsAnimating(false);
+
+    // Only start animation if radar tab is active
+    if (activeTab !== 'radar') {
       return;
     }
 
-    const centerX = canvas.offsetWidth / 2;
-    const centerY = canvas.offsetHeight / 2;
-    const radius = Math.min(canvas.offsetWidth, canvas.offsetHeight) * 0.35;
+    // Setup canvas with proper sizing
+    const setupCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const radius = Math.min(rect.width, rect.height) * 0.35;
+      
+      return { centerX, centerY, radius, width: rect.width, height: rect.height };
+    };
 
+    let { centerX, centerY, radius, width, height } = setupCanvas();
     let time = 0;
-    let isAnimating = true;
+    let animationActive = true;
 
     const draw = () => {
-      if (!isAnimating || !canvas || !ctx || !isVisible) return; // Fix: Check animation state and canvas validity
+      // Double check we should still be animating
+      if (!animationActive || !canvas || !ctx || activeTab !== 'radar') {
+        return;
+      }
       
       try {
-        // Throttle drawing based on performance settings
-        const now = performance.now();
-        const timeDelta = now - lastDrawTime.current;
-        const targetFrameTime = 1000 / performanceSettings.canvasFrameRate;
-        
-        if (timeDelta < targetFrameTime) {
-          if (isAnimating && isVisible) {
-            animationRef.current = requestAnimationFrame(draw);
+        // Clear canvas
+        ctx.clearRect(0, 0, width, height);
+        time += 0.01;
+
+        // Draw concentric circles (skill levels)
+        const levels = [20, 40, 60, 80, 100];
+        levels.forEach((level, index) => {
+          const levelRadius = (level / 100) * radius;
+          ctx.beginPath();
+          ctx.arc(centerX, centerY, levelRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = theme === 'dark' ? 
+            `rgba(255, 255, 255, ${0.1 + index * 0.05})` : 
+            `rgba(0, 0, 0, ${0.1 + index * 0.05})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+
+          // Level labels
+          if (index % 2 === 0) {
+            ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+            ctx.font = '10px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${level}%`, centerX + levelRadius - 15, centerY - 5);
           }
-          return;
-        }
-        
-        lastDrawTime.current = now;
-        
-      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-      time += performanceSettings.isMobile ? 0.005 : 0.01; // Slower animation on mobile
+        });
 
-      // Draw concentric circles (skill levels)
-      const levels = [20, 40, 60, 80, 100];
-      levels.forEach((level, index) => {
-        const levelRadius = (level / 100) * radius;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY, levelRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = theme === 'dark' ? 
-          `rgba(255, 255, 255, ${0.1 + index * 0.05})` : 
-          `rgba(0, 0, 0, ${0.1 + index * 0.05})`;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        // Level labels
-        if (index % 2 === 0) {
-          ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-          ctx.font = '10px Inter, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(`${level}%`, centerX + levelRadius - 15, centerY - 5);
-        }
-      });
-
-      // Draw axis lines
-      const topSkills = allSkills.slice(0, 8); // Top 8 skills for radar
-        if (topSkills.length === 0) return; // Fix: Prevent division by zero
+        // Draw axis lines and skills
+        const topSkills = allSkills.slice(0, 8);
+        if (topSkills.length === 0) return;
         
-      topSkills.forEach((skill, index) => {
-          if (!skill || typeof skill.level !== 'number' || !skill.color) return; // Fix: Validate skill data
+        topSkills.forEach((skill, index) => {
+          if (!skill || typeof skill.level !== 'number' || !skill.color) return;
           
-        const angle = (index * Math.PI * 2) / topSkills.length;
-        const endX = centerX + Math.cos(angle - Math.PI / 2) * radius;
-        const endY = centerY + Math.sin(angle - Math.PI / 2) * radius;
+          const angle = (index * Math.PI * 2) / topSkills.length;
+          const endX = centerX + Math.cos(angle - Math.PI / 2) * radius;
+          const endY = centerY + Math.sin(angle - Math.PI / 2) * radius;
 
-        ctx.beginPath();
-        ctx.moveTo(centerX, centerY);
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+          // Axis lines
+          ctx.beginPath();
+          ctx.moveTo(centerX, centerY);
+          ctx.lineTo(endX, endY);
+          ctx.strokeStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
 
-        // Skill labels
-        const labelDistance = radius + 25;
-        const labelX = centerX + Math.cos(angle - Math.PI / 2) * labelDistance;
-        const labelY = centerY + Math.sin(angle - Math.PI / 2) * labelDistance;
-        
-        ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
-        ctx.font = 'bold 11px Inter, sans-serif';
-        ctx.textAlign = labelX > centerX ? 'left' : 'right';
+          // Skill labels
+          const labelDistance = radius + 25;
+          const labelX = centerX + Math.cos(angle - Math.PI / 2) * labelDistance;
+          const labelY = centerY + Math.sin(angle - Math.PI / 2) * labelDistance;
+          
+          ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+          ctx.font = 'bold 11px Inter, sans-serif';
+          ctx.textAlign = labelX > centerX ? 'left' : 'right';
           ctx.fillText(skill.name || 'Unknown', labelX, labelY);
-        
-        // Skill percentage
-        ctx.font = '9px Inter, sans-serif';
-        ctx.fillStyle = skill.color;
-        ctx.fillText(`${skill.level}%`, labelX, labelY + 12);
-      });
-
-      // Draw skill polygon
-      ctx.beginPath();
-      topSkills.forEach((skill, index) => {
-          if (!skill || typeof skill.level !== 'number') return; // Fix: Validate skill data
           
-        const angle = (index * Math.PI * 2) / topSkills.length;
-        const skillRadius = (skill.level / 100) * radius;
-        const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
-        const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
-        
-        if (index === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-      });
-      ctx.closePath();
-      ctx.fillStyle = theme === 'dark' ? 
-        'rgba(0, 210, 255, 0.1)' : 
-        'rgba(0, 210, 255, 0.15)';
-      ctx.fill();
-      ctx.strokeStyle = theme === 'dark' ? 
-        'rgba(0, 210, 255, 0.6)' : 
-        'rgba(0, 210, 255, 0.8)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+          // Skill percentage
+          ctx.font = '9px Inter, sans-serif';
+          ctx.fillStyle = skill.color;
+          ctx.fillText(`${skill.level}%`, labelX, labelY + 12);
+        });
 
-      // Draw skill points with animation
-      topSkills.forEach((skill, index) => {
-          if (!skill || typeof skill.level !== 'number' || !skill.color) return; // Fix: Validate skill data
+        // Draw skill polygon
+        ctx.beginPath();
+        topSkills.forEach((skill, index) => {
+          if (!skill || typeof skill.level !== 'number') return;
           
-        const angle = (index * Math.PI * 2) / topSkills.length;
-        const skillRadius = (skill.level / 100) * radius;
-        const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
-        const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
-        
-        // Glow effect - only on desktop for better performance
-        if (performanceSettings.enableGradients && !performanceSettings.isMobile) {
-        const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
-        const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
-        gradient.addColorStop(0, `${skill.color}80`);
-        gradient.addColorStop(1, `${skill.color}00`);
-        
-        ctx.beginPath();
-        ctx.fillStyle = gradient;
-        ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+          const angle = (index * Math.PI * 2) / topSkills.length;
+          const skillRadius = (skill.level / 100) * radius;
+          const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
+          const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
+          
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.closePath();
+        ctx.fillStyle = theme === 'dark' ? 
+          'rgba(0, 210, 255, 0.1)' : 
+          'rgba(0, 210, 255, 0.15)';
         ctx.fill();
-        }
-        
-        // Skill point
-        ctx.beginPath();
-        ctx.fillStyle = skill.color;
-        ctx.arc(x, y, 5, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Inner highlight
-        ctx.beginPath();
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.arc(x, y, 2, 0, Math.PI * 2);
-        ctx.fill();
-      });
+        ctx.strokeStyle = theme === 'dark' ? 
+          'rgba(0, 210, 255, 0.6)' : 
+          'rgba(0, 210, 255, 0.8)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
-        // Continue animation only when visible and tab is active
-        if (isAnimating && isVisible && activeTab === 'radar') {
-      animationRef.current = requestAnimationFrame(draw);
+        // Draw skill points with animation
+        topSkills.forEach((skill, index) => {
+          if (!skill || typeof skill.level !== 'number' || !skill.color) return;
+          
+          const angle = (index * Math.PI * 2) / topSkills.length;
+          const skillRadius = (skill.level / 100) * radius;
+          const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
+          const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
+          
+          // Glow effect
+          const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
+          const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+          gradient.addColorStop(0, `${skill.color}80`);
+          gradient.addColorStop(1, `${skill.color}00`);
+          
+          ctx.beginPath();
+          ctx.fillStyle = gradient;
+          ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Skill point
+          ctx.beginPath();
+          ctx.fillStyle = skill.color;
+          ctx.arc(x, y, 5, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Inner highlight
+          ctx.beginPath();
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+          ctx.arc(x, y, 2, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Continue animation only if still active
+        if (animationActive && activeTab === 'radar') {
+          animationRef.current = requestAnimationFrame(draw);
         }
       } catch (error) {
         console.error('Canvas drawing error:', error);
-        isAnimating = false; // Stop animation on error
+        animationActive = false;
       }
     };
 
-    // Start the animation
-    draw();
+    // Force canvas refresh and start animation
+    setIsAnimating(true);
+    
+    // Use a more reliable delay to ensure canvas is ready
+    const startAnimation = () => {
+      if (activeTab === 'radar' && animationActive) {
+        draw();
+      }
+    };
+
+    // Start animation immediately and also with a small delay as backup
+    startAnimation();
+    const timeoutId = setTimeout(startAnimation, 100);
+
+    // Handle resize
+    const handleResize = throttleEvent(() => {
+      if (activeTab === 'radar' && canvas && animationActive) {
+        const newDimensions = setupCanvas();
+        centerX = newDimensions.centerX;
+        centerY = newDimensions.centerY;
+        radius = newDimensions.radius;
+        width = newDimensions.width;
+        height = newDimensions.height;
+      }
+    }, 250);
+
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      isAnimating = false; // Fix: Properly stop animation
+      animationActive = false;
+      setIsAnimating(false);
+      clearTimeout(timeoutId);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
+      window.removeEventListener('resize', handleResize);
     };
-  }, [theme, colors, allSkills, performanceSettings, isVisible, activeTab]); // Added performance dependencies
-
-  // Separate effect to handle tab changes and ensure radar visibility
-  useEffect(() => {
-    // Force a re-render of the canvas when switching back to radar tab
-    if (activeTab === 'radar' && canvasRef.current) {
-      const canvas = canvasRef.current;
-      // Trigger a resize event to refresh the canvas
-      const resizeEvent = new Event('resize');
-      window.dispatchEvent(resizeEvent);
-      
-      // Ensure canvas is properly sized and visible
-      setTimeout(() => {
-        if (canvas) {
-          canvas.width = canvas.offsetWidth * 2;
-          canvas.height = canvas.offsetHeight * 2;
-          const ctx = canvas.getContext('2d');
-          ctx.scale(2, 2);
-        }
-      }, 100);
-    }
-  }, [activeTab]);
+  }, [theme, colors, allSkills, activeTab]); // Keep activeTab as dependency
 
   const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
     <motion.div
@@ -352,7 +347,7 @@ export const SkillsRadar3D = () => {
           {['radar', 'categories', 'timeline'].map((tab) => (
             <Button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => handleTabChange(tab)}
               variant={activeTab === tab ? 'default' : 'ghost'}
               size="sm"
               className="capitalize"
@@ -382,7 +377,9 @@ export const SkillsRadar3D = () => {
                   ref={canvasRef}
                   className="w-full h-96 rounded-lg"
                   style={{ 
-                    backgroundColor: theme === 'dark' ? '#0a0a0a' : '#f8fafc'
+                    backgroundColor: theme === 'dark' ? '#0a0a0a' : '#f8fafc',
+                    contain: 'layout style paint',
+                    transform: 'translateZ(0)',
                   }}
                 />
               </CardContent>
@@ -431,8 +428,7 @@ export const SkillsRadar3D = () => {
                             className="h-2 rounded-full"
                             style={{ backgroundColor: skill.color }}
                             initial={{ width: 0 }}
-                            whileInView={{ width: `${skill.level}%` }}
-                            viewport={{ once: true }}
+                            animate={{ width: `${skill.level}%` }}
                             transition={{ duration: 1, delay: 0.2 }}
                           />
                         </div>
@@ -459,49 +455,44 @@ export const SkillsRadar3D = () => {
           >
             <Card className="glass-card p-6">
               <CardContent className="p-0">
-                <h4 className="text-xl font-bold mb-6 text-center" style={{ color: colors.primary }}>
-                  📈 Skill Development Timeline
+                <h4 className="text-xl font-bold mb-6 flex items-center gap-2" style={{ color: colors.primary }}>
+                  <TrendingUp size={20} />
+                  Learning Journey Timeline
                 </h4>
                 <div className="space-y-4">
-                  {[
-                    { year: '2021', skills: ['JavaScript', 'HTML/CSS', 'Git'], level: 'Beginner' },
-                    { year: '2022', skills: ['Python', 'React', 'Node.js'], level: 'Intermediate' },
-                    { year: '2023', skills: ['Java', 'Next.js', 'C++'], level: 'Advanced' },
-                    { year: '2024', skills: ['AWS', 'Docker', 'MongoDB'], level: 'Professional' }
-                  ].map((period, index) => (
-                    <motion.div
-                      key={period.year}
-                      initial={{ opacity: 0, x: -50 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="flex items-center gap-4 p-4 rounded-lg glass-card"
-                    >
-                      <div className="text-2xl font-bold" style={{ color: colors.accent }}>
-                        {period.year}
-                      </div>
-                      <div className="flex-1">
-                        <div className="font-semibold mb-1" style={{ color: colors.text }}>
-                          {period.level} Level
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {period.skills.map((skill) => (
-                            <span
-                              key={skill}
-                              className="px-2 py-1 text-xs rounded-full"
-                              style={{ 
-                                backgroundColor: `${colors.primary}20`,
-                                color: colors.primary,
-                                border: `1px solid ${colors.primary}40`
-                              }}
-                            >
-                              {skill}
+                  {allSkills
+                    .sort((a, b) => b.level - a.level)
+                    .map((skill, index) => (
+                      <motion.div
+                        key={skill.name}
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="flex items-center gap-4 p-3 rounded-lg"
+                        style={{ 
+                          backgroundColor: theme === 'dark' ? `${skill.color}05` : `${skill.color}03`,
+                          border: `1px solid ${skill.color}20`
+                        }}
+                      >
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: skill.color }}
+                        />
+                        <div className="flex-1">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold" style={{ color: colors.text }}>
+                              {skill.name}
                             </span>
-                          ))}
+                            <span className="text-sm" style={{ color: skill.color }}>
+                              {skill.level}% • {skill.experience}
+                            </span>
+                          </div>
+                          <div className="text-xs" style={{ color: colors.muted }}>
+                            {skill.projects} projects completed
+                          </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    ))}
                 </div>
               </CardContent>
             </Card>

@@ -1,173 +1,131 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '@/lib/ThemeContext';
-import { getPerformanceSettings, createPerformanceObserver, getResponsiveScale } from '@/lib/mobileOptimization';
+import { createOptimizedObserver } from '@/lib/performanceUtils';
 
-export const FloatingParticles = ({ count: defaultCount = 50 }) => {
+export const FloatingParticles = ({ count = 30 }) => {
   const [particles, setParticles] = useState([]);
   const [isVisible, setIsVisible] = useState(true);
-  const [performanceSettings, setPerformanceSettings] = useState(null);
-  const containerRef = useRef(null);
-  const observerRef = useRef(null);
   const { theme, colors } = useTheme();
 
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
-  }, []);
-
-  // Intersection Observer for performance optimization
-  useEffect(() => {
-    if (!performanceSettings || !containerRef.current) return;
-
-    const handleIntersection = (entries) => {
-      entries.forEach((entry) => {
-        setIsVisible(entry.isIntersecting);
-      });
-    };
-
-    observerRef.current = createPerformanceObserver(handleIntersection);
-    
-    if (observerRef.current && containerRef.current) {
-      observerRef.current.observe(containerRef.current);
-    }
-
-    return () => {
-      if (observerRef.current && containerRef.current) {
-        observerRef.current.unobserve(containerRef.current);
-      }
-    };
-  }, [performanceSettings]);
-
-  useEffect(() => {
-    if (!performanceSettings) return;
-
-    // Use responsive particle count - scales down but maintains feature
-    const count = Math.min(defaultCount, performanceSettings.particleCount);
-
-    const generatedParticles = Array.from({ length: count }, (_, i) => ({
+  const generateParticles = useCallback(() => {
+    return Array.from({ length: count }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       y: Math.random() * 100,
-      size: getResponsiveScale(Math.random() * 4 + 2, 'particles') * performanceSettings.particleSize,
-      duration: performanceSettings.particleAnimationDuration + Math.random() * 10,
-      delay: Math.random() * 5,
-      opacity: Math.random() * 0.6 + 0.2,
-      moveX: (Math.random() - 0.5) * getResponsiveScale(200, 'effects'),
-      moveY: (Math.random() - 0.5) * getResponsiveScale(200, 'effects'),
+      size: Math.random() * 3 + 1.5,
+      duration: Math.random() * 15 + 8,
+      delay: Math.random() * 3,
+      opacity: Math.random() * 0.4 + 0.1,
+      moveX: (Math.random() - 0.5) * 150,
+      moveY: (Math.random() - 0.5) * 150,
     }));
-    setParticles(generatedParticles);
-  }, [defaultCount, performanceSettings]);
+  }, [count]);
 
-  // Only skip rendering if user prefers reduced motion
-  if (!performanceSettings || 
-      performanceSettings.prefersReducedMotion ||
-      particles.length === 0) {
-    return null;
-  }
+  const particleStyles = useMemo(() => {
+    return particles.map(particle => ({
+      left: `${particle.x}%`,
+      top: `${particle.y}%`,
+      width: `${particle.size}px`,
+      height: `${particle.size}px`,
+      background: theme === 'dark' 
+        ? `radial-gradient(circle, ${colors.primary}${Math.floor(particle.opacity * 255).toString(16).padStart(2, '0')}, transparent)`
+        : `radial-gradient(circle, ${colors.accent}${Math.floor(particle.opacity * 255).toString(16).padStart(2, '0')}, transparent)`,
+      filter: 'blur(0.5px)',
+      contain: 'layout style paint',
+      transform: 'translateZ(0)',
+      willChange: 'transform, opacity',
+    }));
+  }, [particles, theme, colors]);
+
+  const specialElementStyles = useMemo(() => {
+    return [1, 2, 3].map((i) => ({
+      left: `${15 + i * 30}%`,
+      top: `${5 + i * 25}%`,
+      width: '16px',
+      height: '16px',
+      background: `conic-gradient(from 0deg, ${colors.primary}30, ${colors.accent}30, ${colors.primary}30)`,
+      borderRadius: '50%',
+      filter: 'blur(0.8px)',
+      contain: 'layout style paint',
+      transform: 'translateZ(0)',
+      willChange: 'transform, opacity',
+    }));
+  }, [colors]);
+
+  useEffect(() => {
+    setParticles(generateParticles());
+  }, [generateParticles]);
+
+  useEffect(() => {
+    const observer = createOptimizedObserver(
+      (entries) => {
+        setIsVisible(entries[0].isIntersecting);
+      },
+      { threshold: 0.1 }
+    );
+
+    const container = document.querySelector('.particles-container');
+    if (container && observer) {
+      observer.observe(container);
+    }
+
+    return () => {
+      if (observer && container) {
+        observer.unobserve(container);
+      }
+    };
+  }, []);
+
+  if (particles.length === 0) return null;
 
   return (
-    <div 
-      ref={containerRef}
-      className="particles-container"
-      style={{
-        opacity: isVisible ? 1 : 0.3,
-        transition: 'opacity 0.3s ease'
-      }}
-    >
-      {particles.map((particle) => (
+    <div className="particles-container" style={{ 
+      contain: 'layout style paint',
+      transform: 'translateZ(0)',
+      opacity: isVisible ? 1 : 0.3,
+    }}>
+      {particles.map((particle, index) => (
         <motion.div
           key={particle.id}
           className="absolute rounded-full pointer-events-none"
-          style={{
-            left: `${particle.x}%`,
-            top: `${particle.y}%`,
-            width: `${particle.size}px`,
-            height: `${particle.size}px`,
-            background: performanceSettings.enableGradients
-              ? (theme === 'dark' 
-                  ? `radial-gradient(circle, ${colors.primary}${Math.floor(particle.opacity * 100).toString(16)}, transparent)`
-                  : `radial-gradient(circle, ${colors.accent}${Math.floor(particle.opacity * 100).toString(16)}, transparent)`)
-              : (theme === 'dark' ? colors.primary : colors.accent),
-            filter: performanceSettings.enableBlur 
-              ? `blur(${getResponsiveScale(0.5, 'effects')}px)` 
-              : 'none',
-            willChange: isVisible ? 'transform, opacity' : 'auto',
-          }}
+          style={particleStyles[index]}
           animate={isVisible ? {
-            x: [0, particle.moveX, 0],
-            y: [0, particle.moveY, 0],
-            scale: [1, 1 + getResponsiveScale(0.2, 'animations'), 1],
-            opacity: [particle.opacity, particle.opacity * 1.5, particle.opacity],
-          } : false}
+            x: [0, particle.moveX * 0.7, 0],
+            y: [0, particle.moveY * 0.7, 0],
+            scale: [1, 1.15, 1],
+            opacity: [particle.opacity, particle.opacity * 1.3, particle.opacity],
+          } : {}}
           transition={{
-            duration: particle.duration / performanceSettings.animationSpeed,
+            duration: particle.duration,
             repeat: isVisible ? Infinity : 0,
             delay: particle.delay,
             ease: "easeInOut",
+            type: "tween",
           }}
         />
       ))}
       
-      {/* Enhanced floating elements - available on all devices with responsive scaling */}
-      {performanceSettings.enableComplexAnimations && [1, 2, 3].map((i) => (
+      {isVisible && [1, 2].map((i) => (
         <motion.div
           key={`special-${i}`}
           className="absolute pointer-events-none"
-          style={{
-            left: `${20 + i * 25}%`,
-            top: `${10 + i * 20}%`,
-            width: `${getResponsiveScale(20, 'effects')}px`,
-            height: `${getResponsiveScale(20, 'effects')}px`,
-            background: performanceSettings.enableGradients
-              ? `conic-gradient(from 0deg, ${colors.primary}${Math.floor(performanceSettings.gradientComplexity * 64).toString(16)}, ${colors.accent}${Math.floor(performanceSettings.gradientComplexity * 64).toString(16)}, ${colors.primary}${Math.floor(performanceSettings.gradientComplexity * 64).toString(16)})`
-              : `${colors.primary}40`,
-            borderRadius: '50%',
-            filter: performanceSettings.enableBlur 
-              ? `blur(${getResponsiveScale(1, 'effects') * performanceSettings.blurIntensity}px)` 
-              : 'none',
-            willChange: isVisible ? 'transform, opacity' : 'auto',
-          }}
-          animate={isVisible ? {
+          style={specialElementStyles[i - 1]}
+          animate={{
             rotate: [0, 360],
-            scale: [1, 1 + getResponsiveScale(0.3, 'animations'), 1],
-            opacity: [0.3, 0.6, 0.3],
-          } : false}
+            scale: [1, 1.2, 1],
+            opacity: [0.2, 0.4, 0.2],
+          }}
           transition={{
-            duration: (15 + i * 5) / performanceSettings.animationSpeed,
-            repeat: isVisible ? Infinity : 0,
+            duration: 12 + i * 3,
+            repeat: Infinity,
             ease: "linear",
+            type: "tween",
           }}
         />
       ))}
-
-      {/* Mobile-specific touch interaction indicator */}
-      {performanceSettings.touchOptimization && (
-        <motion.div
-          className="absolute pointer-events-none"
-          style={{
-            right: '10%',
-            bottom: '10%',
-            width: '8px',
-            height: '8px',
-            background: colors.accent,
-            borderRadius: '50%',
-            filter: 'blur(0.5px)',
-          }}
-          animate={{
-            scale: [1, 1.5, 1],
-            opacity: [0.5, 1, 0.5],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      )}
     </div>
   );
 }; 

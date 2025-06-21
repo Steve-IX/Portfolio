@@ -3,74 +3,70 @@
 import { motion } from 'framer-motion';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeContext';
-import { getPerformanceSettings, createTouchOptimizedHandler } from '@/lib/mobileOptimization';
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 export const ThemeToggle = () => {
   const { theme, toggleTheme, colors } = useTheme();
-  const [performanceSettings, setPerformanceSettings] = useState(null);
   
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
-  }, []);
+  // Memoize the click handler to prevent unnecessary re-renders
+  const handleClick = useCallback(() => {
+    // Use scheduler.postTask for better INP if available, fallback to requestAnimationFrame
+    if ('scheduler' in window && 'postTask' in window.scheduler) {
+      window.scheduler.postTask(toggleTheme, { priority: 'user-blocking' });
+    } else {
+      requestAnimationFrame(toggleTheme);
+    }
+  }, [toggleTheme]);
 
-  // Touch-optimized toggle function
-  const handleClick = useCallback(
-    createTouchOptimizedHandler(() => {
-      toggleTheme();
-    }, { debounce: performanceSettings?.touchOptimization ? 150 : 50 }),
-    [toggleTheme, performanceSettings]
-  );
+  // Memoize style object to prevent recalculation
+  const buttonStyle = useMemo(() => ({
+    backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+    color: colors.accent,
+    // CSS containment for better rendering performance
+    contain: 'layout style paint',
+    // Hardware acceleration
+    transform: 'translateZ(0)',
+    willChange: 'transform',
+  }), [theme, colors.accent]);
 
-  if (!performanceSettings) {
-    // Fallback while loading performance settings
-    return (
-      <button
-        onClick={toggleTheme}
-        className="relative h-10 w-10 rounded-full flex items-center justify-center"
-        style={{ 
-          backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-          color: colors.accent
-        }}
-        aria-label="Toggle theme"
-      >
-        {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-      </button>
-    );
-  }
-  
+  // Optimized animation variants
+  const buttonVariants = {
+    hover: { scale: 1.1 },
+    tap: { scale: 0.9 },
+    rest: { scale: 1 }
+  };
+
+  const iconVariants = {
+    rotate: { 
+      rotate: theme === 'dark' ? 0 : 180,
+      transition: { 
+        duration: 0.3, // Reduced from 0.5s
+        ease: [0.4, 0, 0.2, 1] // Optimized easing curve
+      }
+    }
+  };
+
   return (
     <motion.button
-      whileHover={!performanceSettings.touchOptimization ? { scale: 1.1 } : undefined}
-      whileTap={{ scale: 0.95 }}
+      variants={buttonVariants}
+      initial="rest"
+      whileHover="hover"
+      whileTap="tap"
       onClick={handleClick}
-      className="relative h-10 w-10 rounded-full flex items-center justify-center"
-      style={{ 
-        backgroundColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-        color: colors.accent,
-        // Optimize CSS properties for better mobile performance
-        willChange: 'transform',
-        touchAction: 'manipulation', // Prevents 300ms click delay on mobile
-      }}
+      className="relative h-10 w-10 rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-2"
+      style={buttonStyle}
       aria-label="Toggle theme"
-      // Responsive animation timing
-      transition={{ duration: performanceSettings.touchOptimization ? 0.2 : 0.3 }}
+      // Optimize for better interaction responsiveness
+      onPointerDown={(e) => e.preventDefault()}
     >
       <motion.div
-        initial={false}
-        animate={{ 
-          rotate: theme === 'dark' ? 0 : 180,
-          scale: 1
-        }}
-        transition={{ 
-          duration: performanceSettings.touchOptimization ? 0.3 : 0.5,
-          ease: "easeInOut"
-        }}
-        className="absolute"
-        style={{
-          willChange: performanceSettings.touchOptimization ? 'auto' : 'transform'
+        variants={iconVariants}
+        animate="rotate"
+        className="absolute flex items-center justify-center"
+        style={{ 
+          // Ensure smooth icon transitions
+          backfaceVisibility: 'hidden',
+          transform: 'translateZ(0)'
         }}
       >
         {theme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}

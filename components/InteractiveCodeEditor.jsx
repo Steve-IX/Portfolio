@@ -1,16 +1,15 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, RotateCcw, Download, Copy, Check, Terminal, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTheme } from '@/lib/ThemeContext';
-import { getPerformanceSettings, throttle } from '@/lib/mobileOptimization';
+import { scheduleUserBlockingTask, throttleEvent } from '@/lib/performanceUtils';
 
 export const InteractiveCodeEditor = () => {
   const { theme, colors } = useTheme();
-  const [performanceSettings, setPerformanceSettings] = useState(null);
   const [code, setCode] = useState(`// Welcome to my Interactive Code Playground!
 // Try editing this JavaScript code and click Run!
 
@@ -58,12 +57,6 @@ createArt();`);
   const activeAnimationsRef = useRef(new Set());
   const activeTimeoutsRef = useRef(new Set());
   const activeIntervalsRef = useRef(new Set());
-
-  // Initialize performance settings
-  useEffect(() => {
-    const settings = getPerformanceSettings();
-    setPerformanceSettings(settings);
-  }, []);
 
   // Enhanced cleanup function to stop all animations
   const cleanup = () => {
@@ -141,7 +134,8 @@ createArt();`);
     activeIntervalsRef.current.delete(id);
   };
 
-  const predefinedExamples = [
+  // Memoize examples to prevent recreation
+  const predefinedExamples = useMemo(() => [
     {
       name: "Particle Animation",
       code: `// Animated Particle System
@@ -269,85 +263,111 @@ function matrixRain() {
 
 matrixRain();`
     }
-  ];
+  ], []); // Empty dependency array since examples are static
 
-  const runCode = async () => {
+  // Optimized runCode with better performance
+  const runCode = useCallback(async () => {
     setIsRunning(true);
     setOutput('Running code...');
     
-    try {
-      // Clean up any previous animations first
-      cleanup();
-      
-      // Small delay to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Clear and setup canvas
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.id = 'canvas';
-        canvas.width = 400;
-        canvas.height = 200;
-        const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const executeCode = async () => {
+      try {
+        // Clean up any previous animations first
+        cleanup();
+        
+        // Use scheduler for better performance
+        await new Promise(resolve => {
+          scheduleUserBlockingTask(resolve);
+        });
+        
+        // Clear and setup canvas
+        const canvas = canvasRef.current;
+        if (canvas) {
+          canvas.id = 'canvas';
+          canvas.width = 400;
+          canvas.height = 200;
+          const ctx = canvas.getContext('2d');
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Execute the code safely with wrapped functions for proper tracking
+        const result = new Function(
+          'document', 
+          'requestAnimationFrame', 
+          'cancelAnimationFrame', 
+          'setTimeout', 
+          'clearTimeout', 
+          'setInterval', 
+          'clearInterval',
+          code
+        )(
+          document, 
+          wrappedRequestAnimationFrame, 
+          wrappedCancelAnimationFrame, 
+          wrappedSetTimeout, 
+          wrappedClearTimeout, 
+          wrappedSetInterval, 
+          wrappedClearInterval
+        );
+        
+        setOutput(result || 'Code executed successfully!');
+      } catch (error) {
+        setOutput(`❌ Error: ${error.message}`);
+        // Clean up on error too
+        cleanup();
+      } finally {
+        // Always reset running state after a delay
+        timeoutRef.current = setTimeout(() => {
+          setIsRunning(false);
+        }, 500); // Reduced delay for snappier feel
       }
-      
-      // Execute the code safely with wrapped functions for proper tracking
-      const result = new Function(
-        'document', 
-        'requestAnimationFrame', 
-        'cancelAnimationFrame', 
-        'setTimeout', 
-        'clearTimeout', 
-        'setInterval', 
-        'clearInterval',
-        code
-      )(
-        document, 
-        wrappedRequestAnimationFrame, 
-        wrappedCancelAnimationFrame, 
-        wrappedSetTimeout, 
-        wrappedClearTimeout, 
-        wrappedSetInterval, 
-        wrappedClearInterval
-      );
-      
-      setOutput(result || 'Code executed successfully!');
-    } catch (error) {
-      setOutput(`❌ Error: ${error.message}`);
-      // Clean up on error too
+    };
+
+    // Use scheduler for better INP
+    scheduleUserBlockingTask(executeCode);
+  }, [code, cleanup, wrappedRequestAnimationFrame, wrappedCancelAnimationFrame, wrappedSetTimeout, wrappedClearTimeout, wrappedSetInterval, wrappedClearInterval]);
+
+  // Optimized reset function
+  const resetCode = useCallback(() => {
+    scheduleUserBlockingTask(() => {
       cleanup();
-    } finally {
-      // Always reset running state after a delay
-      timeoutRef.current = setTimeout(() => {
-        setIsRunning(false);
-      }, 1000);
-    }
-  };
+      setCode(predefinedExamples[0].code);
+      setOutput('Console cleared! Ready to run new code.');
+      setIsRunning(false);
+    });
+  }, [cleanup, predefinedExamples]);
 
-  const resetCode = () => {
-    cleanup();
-    setCode(predefinedExamples[0].code);
-    setOutput('Console cleared! Ready to run new code.');
-    setIsRunning(false);
-  };
+  // Throttled copy function
+  const copyCode = useCallback(
+    throttleEvent(async () => {
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500); // Reduced time
+      } catch (err) {
+        console.error('Failed to copy code');
+      }
+    }, 300),
+    [code]
+  );
 
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(code);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy code');
-    }
-  };
+  // Optimized load example function
+  const loadExample = useCallback((example) => {
+    scheduleUserBlockingTask(() => {
+      cleanup();
+      setCode(example.code);
+      setOutput('New example loaded! Click "Run Code" to execute.');
+      setIsRunning(false);
+    });
+  }, [cleanup]);
 
-  const loadExample = (example) => {
-    cleanup();
-    setCode(example.code);
-    setOutput('New example loaded! Click "Run Code" to execute.');
-    setIsRunning(false);
-  };
+  // Throttled code change handler for better performance
+  const handleCodeChange = useCallback(
+    throttleEvent((value) => {
+      setCode(value);
+    }, 50),
+    []
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -445,7 +465,7 @@ matrixRain();`
               <textarea
                 ref={editorRef}
                 value={code}
-                onChange={(e) => setCode(e.target.value)}
+                onChange={(e) => handleCodeChange(e.target.value)}
                 className="w-full h-80 p-4 pl-12 font-mono text-sm bg-transparent border-none outline-none resize-none"
                 style={{
                   color: colors.text,
