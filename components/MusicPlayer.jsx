@@ -2,11 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, SkipForward } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, SkipForward, Repeat, RotateCcw } from 'lucide-react';
 import { useTheme } from '@/lib/ThemeContext';
 
 export const MusicPlayer = () => {
-  // Original playlist of tracks - add new songs here!
+  // Original playlist of tracks - now includes all songs from music folder
   const originalPlaylist = [
     {
       title: "Last Goodbye",
@@ -71,6 +71,34 @@ export const MusicPlayer = () => {
       filename: "one_piece.mp3",
       coverArt: "/music/covers/one-piece.jpg"
     },
+    {
+      title: "Haruka Mirai",
+      artist: "Black Clover OST",
+      album: "Black Clover Soundtrack",
+      filename: "Black Clover - Haruka Mirai.mp3",
+      coverArt: "/music/covers/black-clover-haruka-mirai.jpg"
+    },
+    {
+      title: "A Cruel Angel's Thesis",
+      artist: "Evangelion OST",
+      album: "Neon Genesis Evangelion Soundtrack",
+      filename: "A Cruel Angel's Thesis.mp3",
+      coverArt: "/music/covers/cruel-angels-thesis.jpg"
+    },
+    {
+      title: "Silhouette",
+      artist: "KANA-BOON",
+      album: "Naruto Shippuden OST",
+      filename: "KANA-BOON - Silhouette.mp3",
+      coverArt: "/music/covers/kana-boon-silhouette.jpg"
+    },
+    {
+      title: "Hip Shop",
+      artist: "Deltarune OST",
+      album: "Deltarune Chapter 1 Soundtrack",
+      filename: "Hip Shop.mp3",
+      coverArt: "/music/covers/deltarune-hip-shop.jpg"
+    },
   ];
 
   // Fisher-Yates shuffle algorithm to randomize playlist order
@@ -98,6 +126,10 @@ export const MusicPlayer = () => {
   const [error, setError] = useState(null);
   const [coverArtLoaded, setCoverArtLoaded] = useState(false);
   const [coverArtError, setCoverArtError] = useState(false);
+  
+  // New auto-play state (default: on)
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true);
+  
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -386,16 +418,57 @@ export const MusicPlayer = () => {
     };
 
     const handleEnded = () => {
-      console.log('Audio ended:', currentTrack.title);
+      console.log('Track ended:', currentTrack.title);
       setIsPlaying(false);
-      setCurrentTime(0);
       
-      // Auto-advance to next track
-      if (currentTrackIndex < playlist.length - 1) {
-        nextTrack();
-      } else {
-        // Loop back to first track
-        setCurrentTrackIndex(0);
+      // Auto-play next track if enabled
+      if (autoPlayEnabled) {
+        console.log('Auto-play enabled, moving to next track...');
+        setTimeout(async () => {
+          const nextIndex = (currentTrackIndex + 1) % playlist.length;
+          console.log(`🎵 Auto-advancing to track ${nextIndex + 1}: ${playlist[nextIndex].title}`);
+          
+          // Set the next track
+          setCurrentTrackIndex(nextIndex);
+          
+          // Ensure auto-play continues by setting playing state and triggering play after track loads
+          setIsPlaying(true);
+          
+          // Use a timeout to ensure the audio element has updated with the new track
+          setTimeout(async () => {
+            const audio = audioRef.current;
+            if (audio && autoPlayEnabled) {
+              try {
+                console.log('🎵 Auto-playing next track:', playlist[nextIndex].title);
+                
+                // Wait for audio to be ready
+                if (audio.readyState < 2) {
+                  await new Promise((resolve) => {
+                    const onCanPlay = () => {
+                      audio.removeEventListener('canplay', onCanPlay);
+                      resolve();
+                    };
+                    audio.addEventListener('canplay', onCanPlay);
+                  });
+                }
+                
+                // Resume audio context if needed
+                if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                  await audioContextRef.current.resume();
+                }
+                
+                // Play the audio
+                await audio.play();
+                console.log('🎵 Auto-play successful for:', playlist[nextIndex].title);
+                
+              } catch (error) {
+                console.error('Auto-play failed:', error);
+                setIsPlaying(false);
+                setError('Auto-play failed - click play to continue');
+              }
+            }
+          }, 200); // Small delay to ensure audio element is ready
+        }, 500); // Small delay for smooth transition
       }
     };
 
@@ -450,7 +523,7 @@ export const MusicPlayer = () => {
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('loadstart', handleLoadStart);
     };
-  }, [volume, currentTrackIndex]);
+  }, [volume, currentTrackIndex, autoPlayEnabled, playlist]);
 
   // Reset player state when track changes
   useEffect(() => {
@@ -606,20 +679,25 @@ export const MusicPlayer = () => {
     }
   }, [isPlaying, isMinimized]);
 
-  const nextTrack = () => {
-    if (currentTrackIndex < playlist.length - 1) {
-      setCurrentTrackIndex(currentTrackIndex + 1);
-    } else {
-      setCurrentTrackIndex(0); // Loop to first track
+  const nextTrackWithAutoPlay = useCallback(() => {
+    const nextIndex = (currentTrackIndex + 1) % playlist.length;
+    console.log(`🎵 Manually advancing to track ${nextIndex + 1}: ${playlist[nextIndex].title}`);
+    setCurrentTrackIndex(nextIndex);
+    
+    // If auto-play is enabled, continue playing
+    if (autoPlayEnabled) {
+      setIsPlaying(true);
     }
+  }, [currentTrackIndex, playlist, autoPlayEnabled]);
+
+  const nextTrack = () => {
+    const nextIndex = (currentTrackIndex + 1) % playlist.length;
+    setCurrentTrackIndex(nextIndex);
   };
 
   const previousTrack = () => {
-    if (currentTrackIndex > 0) {
-      setCurrentTrackIndex(currentTrackIndex - 1);
-    } else {
-      setCurrentTrackIndex(playlist.length - 1); // Loop to last track
-    }
+    const prevIndex = currentTrackIndex === 0 ? playlist.length - 1 : currentTrackIndex - 1;
+    setCurrentTrackIndex(prevIndex);
   };
 
   const handleProgressClick = (e) => {
@@ -690,6 +768,11 @@ export const MusicPlayer = () => {
     contain: 'layout style paint',
     transform: 'translateZ(0)',
   }), [colors.primary]);
+
+  const toggleAutoPlay = () => {
+    setAutoPlayEnabled(prev => !prev);
+    console.log(`🎵 Auto-play ${!autoPlayEnabled ? 'enabled' : 'disabled'}`);
+  };
 
   return (
     <>
@@ -945,6 +1028,25 @@ export const MusicPlayer = () => {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Auto-play Toggle */}
+                    <button
+                      onClick={toggleAutoPlay}
+                      className="p-2 rounded hover:bg-opacity-20 transition-colors focus:outline-none"
+                      style={{ 
+                        backgroundColor: autoPlayEnabled ? `${colors.primary}20` : `${colors.primary}10`,
+                        border: autoPlayEnabled ? `1px solid ${colors.primary}40` : `1px solid transparent`
+                      }}
+                      type="button"
+                      title={`Auto-play: ${autoPlayEnabled ? 'On' : 'Off'}`}
+                    >
+                      {autoPlayEnabled ? (
+                        <Repeat size={14} style={{ color: colors.primary }} />
+                      ) : (
+                        <RotateCcw size={14} style={{ color: colors.primary, opacity: 0.6 }} />
+                      )}
+                    </button>
+
+                    {/* Volume Controls */}
                     <button
                       onClick={toggleMute}
                       className="p-2 rounded hover:bg-opacity-20 transition-colors focus:outline-none"
@@ -964,7 +1066,7 @@ export const MusicPlayer = () => {
                       step="0.05"
                       value={isMuted ? 0 : volume}
                       onChange={handleVolumeChange}
-                      className="w-20 h-2 rounded-full appearance-none cursor-pointer focus:outline-none"
+                      className="w-16 h-2 rounded-full appearance-none cursor-pointer focus:outline-none"
                       style={{
                         background: `linear-gradient(to right, ${colors.primary} 0%, ${colors.primary} ${(isMuted ? 0 : volume) * 100}%, ${colors.primary}30 ${(isMuted ? 0 : volume) * 100}%, ${colors.primary}30 100%)`
                       }}
