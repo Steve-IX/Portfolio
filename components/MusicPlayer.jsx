@@ -6,8 +6,8 @@ import { Play, Pause, Volume2, VolumeX, Music, Minimize2, Maximize2, SkipBack, S
 import { useTheme } from '@/lib/ThemeContext';
 
 export const MusicPlayer = () => {
-    // Playlist of tracks - add new songs here!
-  const playlist = [
+  // Original playlist of tracks - add new songs here!
+  const originalPlaylist = [
     {
       title: "Last Goodbye",
       artist: "Undertale OST",
@@ -43,15 +43,49 @@ export const MusicPlayer = () => {
       filename: "Crossing Field (Orchestra).mp3",
       coverArt: "/music/covers/crossing-field-orchestra.jpg"
     },
-    // Add more tracks here in the future:
-    // {
-    //   title: "Your Song Title",
-    //   artist: "Artist Name", 
-    //   album: "Album Name",
-    //   filename: "your-audio-file.mp3",
-    //   coverArt: "/music/covers/your-cover-art.jpg"
-    // },
+    {
+      title: "Diamond & Pearl",
+      artist: "Pokemon OST",
+      album: "Pokemon Diamond & Pearl Soundtrack",
+      filename: "Pokemon Diamond & Pearl.mp3",
+      coverArt: "/music/covers/pokemon-diamond-pearl.jpg"
+    },
+    {
+      title: "Polaris X Peace Sign",
+      artist: "Polaris",
+      album: "My Hero Academia OST",
+      filename: "Polaris X Peace Sign.mp3",
+      coverArt: "/music/covers/polaris-peace-sign.jpg"
+    },
+    {
+      title: "Final Boss Phase",
+      artist: "Sonic Colors OST",
+      album: "Sonic Colors Soundtrack",
+      filename: "Sonic Colors _Final Boss Phase.mp3",
+      coverArt: "/music/covers/sonic-colors-final-boss.jpg"
+    },
+    {
+      title: "One Piece",
+      artist: "One Piece OST",
+      album: "One Piece Soundtrack",
+      filename: "one_piece.mp3",
+      coverArt: "/music/covers/one-piece.jpg"
+    },
   ];
+
+  // Fisher-Yates shuffle algorithm to randomize playlist order
+  const shufflePlaylist = (array) => {
+    const shuffled = [...array]; // Create a copy to avoid mutating the original
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Playlist state - starts with original order, shuffled after hydration
+  const [playlist, setPlaylist] = useState(originalPlaylist);
+  const [isShuffled, setIsShuffled] = useState(false);
 
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -75,6 +109,14 @@ export const MusicPlayer = () => {
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
+
+  // Shuffle playlist after component mounts to avoid hydration mismatch
+  useEffect(() => {
+    console.log('🎵 Shuffling playlist for fresh listening experience...');
+    const shuffledPlaylist = shufflePlaylist(originalPlaylist);
+    setPlaylist(shuffledPlaylist);
+    setIsShuffled(true);
+  }, []); // Empty dependency array - runs once after mount
 
   // Audio Visualizer Setup
   const cleanupAudioContext = () => {
@@ -687,7 +729,7 @@ export const MusicPlayer = () => {
 
                 {/* Track Info */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 rounded-lg overflow-hidden relative">
+                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden relative">
                     {!coverArtError && currentTrack.coverArt ? (
                       <>
                         <img
@@ -753,6 +795,7 @@ export const MusicPlayer = () => {
                         {currentTrack.album}
                       </div>
                     )}
+
                   </div>
                 </div>
 

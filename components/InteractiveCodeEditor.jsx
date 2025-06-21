@@ -51,7 +51,7 @@ createArt();`);
   const editorRef = useRef(null);
   const animationFrameRef = useRef(null);
   const timeoutRef = useRef(null);
-  
+
   // Track active animations and timeouts for proper cleanup
   const activeAnimationsRef = useRef(new Set());
   const activeTimeoutsRef = useRef(new Set());

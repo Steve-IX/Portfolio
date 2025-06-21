@@ -45,7 +45,32 @@ Save cover art files as:
 - Keep file size under 200KB for web performance
 
 ## Current Cover Art Files
-- [ ] undertale-last-goodbye.jpg
-- [ ] deltarune-field-of-hopes.jpg
+- [x] undertale-last-goodbye.jpg
+- [x] deltarune-field-of-hopes.jpg
+- [x] piero-piccioni-greatest-hits.jpg
+- [x] naruto-shippuden.jpg
+- [x] crossing-field-orchestra.jpg
+- [ ] pokemon-diamond-pearl.jpg (placeholder created)
+- [ ] polaris-peace-sign.jpg (placeholder created)
+- [ ] sonic-colors-final-boss.jpg (placeholder created)
+- [ ] one-piece.jpg (placeholder created)
+
+## Extracting Cover Art for New Songs
+
+For the new songs added, you can extract cover art using:
+
+```bash
+# Pokemon Diamond & Pearl
+ffmpeg -i "Pokemon Diamond & Pearl.mp3" -an -vcodec copy "covers/pokemon-diamond-pearl.jpg"
+
+# Polaris X Peace Sign
+ffmpeg -i "Polaris X Peace Sign.mp3" -an -vcodec copy "covers/polaris-peace-sign.jpg"
+
+# Sonic Colors Final Boss
+ffmpeg -i "Sonic Colors _Final Boss Phase.mp3" -an -vcodec copy "covers/sonic-colors-final-boss.jpg"
+
+# One Piece
+ffmpeg -i "one_piece.mp3" -an -vcodec copy "covers/one-piece.jpg"
+```
 
 After extracting the cover art, the music player will automatically display them! 

@@ -49,9 +49,9 @@ export const SkillsRadar3D = () => {
     
     // Fix: Add error handling for canvas operations
     try {
-      canvas.width = canvas.offsetWidth * 2; // High DPI
-      canvas.height = canvas.offsetHeight * 2;
-      ctx.scale(2, 2);
+    canvas.width = canvas.offsetWidth * 2; // High DPI
+    canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2, 2);
     } catch (error) {
       console.error('Canvas initialization error:', error);
       return;
@@ -69,127 +69,127 @@ export const SkillsRadar3D = () => {
       
       try {
         // Always continue animation regardless of active tab
-        ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-        time += 0.01;
+      ctx.clearRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      time += 0.01;
 
-        // Draw concentric circles (skill levels)
-        const levels = [20, 40, 60, 80, 100];
-        levels.forEach((level, index) => {
-          const levelRadius = (level / 100) * radius;
-          ctx.beginPath();
-          ctx.arc(centerX, centerY, levelRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = theme === 'dark' ? 
-            `rgba(255, 255, 255, ${0.1 + index * 0.05})` : 
-            `rgba(0, 0, 0, ${0.1 + index * 0.05})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          // Level labels
-          if (index % 2 === 0) {
-            ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
-            ctx.font = '10px Inter, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${level}%`, centerX + levelRadius - 15, centerY - 5);
-          }
-        });
-
-        // Draw axis lines
-        const topSkills = allSkills.slice(0, 8); // Top 8 skills for radar
-        if (topSkills.length === 0) return; // Fix: Prevent division by zero
-        
-        topSkills.forEach((skill, index) => {
-          if (!skill || typeof skill.level !== 'number' || !skill.color) return; // Fix: Validate skill data
-          
-          const angle = (index * Math.PI * 2) / topSkills.length;
-          const endX = centerX + Math.cos(angle - Math.PI / 2) * radius;
-          const endY = centerY + Math.sin(angle - Math.PI / 2) * radius;
-
-          ctx.beginPath();
-          ctx.moveTo(centerX, centerY);
-          ctx.lineTo(endX, endY);
-          ctx.strokeStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          // Skill labels
-          const labelDistance = radius + 25;
-          const labelX = centerX + Math.cos(angle - Math.PI / 2) * labelDistance;
-          const labelY = centerY + Math.sin(angle - Math.PI / 2) * labelDistance;
-          
-          ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
-          ctx.font = 'bold 11px Inter, sans-serif';
-          ctx.textAlign = labelX > centerX ? 'left' : 'right';
-          ctx.fillText(skill.name || 'Unknown', labelX, labelY);
-          
-          // Skill percentage
-          ctx.font = '9px Inter, sans-serif';
-          ctx.fillStyle = skill.color;
-          ctx.fillText(`${skill.level}%`, labelX, labelY + 12);
-        });
-
-        // Draw skill polygon
+      // Draw concentric circles (skill levels)
+      const levels = [20, 40, 60, 80, 100];
+      levels.forEach((level, index) => {
+        const levelRadius = (level / 100) * radius;
         ctx.beginPath();
-        topSkills.forEach((skill, index) => {
-          if (!skill || typeof skill.level !== 'number') return; // Fix: Validate skill data
-          
-          const angle = (index * Math.PI * 2) / topSkills.length;
-          const skillRadius = (skill.level / 100) * radius;
-          const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
-          const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
-          
-          if (index === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
-        });
-        ctx.closePath();
-        ctx.fillStyle = theme === 'dark' ? 
-          'rgba(0, 210, 255, 0.1)' : 
-          'rgba(0, 210, 255, 0.15)';
-        ctx.fill();
+        ctx.arc(centerX, centerY, levelRadius, 0, Math.PI * 2);
         ctx.strokeStyle = theme === 'dark' ? 
-          'rgba(0, 210, 255, 0.6)' : 
-          'rgba(0, 210, 255, 0.8)';
-        ctx.lineWidth = 2;
+          `rgba(255, 255, 255, ${0.1 + index * 0.05})` : 
+          `rgba(0, 0, 0, ${0.1 + index * 0.05})`;
+        ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Draw skill points with animation
-        topSkills.forEach((skill, index) => {
+        // Level labels
+        if (index % 2 === 0) {
+          ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.6)' : 'rgba(0, 0, 0, 0.6)';
+          ctx.font = '10px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(`${level}%`, centerX + levelRadius - 15, centerY - 5);
+        }
+      });
+
+      // Draw axis lines
+      const topSkills = allSkills.slice(0, 8); // Top 8 skills for radar
+        if (topSkills.length === 0) return; // Fix: Prevent division by zero
+        
+      topSkills.forEach((skill, index) => {
           if (!skill || typeof skill.level !== 'number' || !skill.color) return; // Fix: Validate skill data
           
-          const angle = (index * Math.PI * 2) / topSkills.length;
-          const skillRadius = (skill.level / 100) * radius;
-          const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
-          const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
+        const angle = (index * Math.PI * 2) / topSkills.length;
+        const endX = centerX + Math.cos(angle - Math.PI / 2) * radius;
+        const endY = centerY + Math.sin(angle - Math.PI / 2) * radius;
+
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.lineTo(endX, endY);
+        ctx.strokeStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Skill labels
+        const labelDistance = radius + 25;
+        const labelX = centerX + Math.cos(angle - Math.PI / 2) * labelDistance;
+        const labelY = centerY + Math.sin(angle - Math.PI / 2) * labelDistance;
+        
+        ctx.fillStyle = theme === 'dark' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0, 0, 0, 0.8)';
+        ctx.font = 'bold 11px Inter, sans-serif';
+        ctx.textAlign = labelX > centerX ? 'left' : 'right';
+          ctx.fillText(skill.name || 'Unknown', labelX, labelY);
+        
+        // Skill percentage
+        ctx.font = '9px Inter, sans-serif';
+        ctx.fillStyle = skill.color;
+        ctx.fillText(`${skill.level}%`, labelX, labelY + 12);
+      });
+
+      // Draw skill polygon
+      ctx.beginPath();
+      topSkills.forEach((skill, index) => {
+          if (!skill || typeof skill.level !== 'number') return; // Fix: Validate skill data
           
-          // Glow effect
-          const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
-          const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
-          gradient.addColorStop(0, `${skill.color}80`);
-          gradient.addColorStop(1, `${skill.color}00`);
+        const angle = (index * Math.PI * 2) / topSkills.length;
+        const skillRadius = (skill.level / 100) * radius;
+        const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
+        const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
+        
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.closePath();
+      ctx.fillStyle = theme === 'dark' ? 
+        'rgba(0, 210, 255, 0.1)' : 
+        'rgba(0, 210, 255, 0.15)';
+      ctx.fill();
+      ctx.strokeStyle = theme === 'dark' ? 
+        'rgba(0, 210, 255, 0.6)' : 
+        'rgba(0, 210, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Draw skill points with animation
+      topSkills.forEach((skill, index) => {
+          if (!skill || typeof skill.level !== 'number' || !skill.color) return; // Fix: Validate skill data
           
-          ctx.beginPath();
-          ctx.fillStyle = gradient;
-          ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Skill point
-          ctx.beginPath();
-          ctx.fillStyle = skill.color;
-          ctx.arc(x, y, 5, 0, Math.PI * 2);
-          ctx.fill();
-          
-          // Inner highlight
-          ctx.beginPath();
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-          ctx.arc(x, y, 2, 0, Math.PI * 2);
-          ctx.fill();
-        });
+        const angle = (index * Math.PI * 2) / topSkills.length;
+        const skillRadius = (skill.level / 100) * radius;
+        const x = centerX + Math.cos(angle - Math.PI / 2) * skillRadius;
+        const y = centerY + Math.sin(angle - Math.PI / 2) * skillRadius;
+        
+        // Glow effect
+        const glowRadius = 15 + Math.sin(time * 2 + index) * 3;
+        const gradient = ctx.createRadialGradient(x, y, 0, x, y, glowRadius);
+        gradient.addColorStop(0, `${skill.color}80`);
+        gradient.addColorStop(1, `${skill.color}00`);
+        
+        ctx.beginPath();
+        ctx.fillStyle = gradient;
+        ctx.arc(x, y, glowRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Skill point
+        ctx.beginPath();
+        ctx.fillStyle = skill.color;
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner highlight
+        ctx.beginPath();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      });
 
         // Continue animation regardless of active tab
         if (isAnimating) {
-          animationRef.current = requestAnimationFrame(draw);
+      animationRef.current = requestAnimationFrame(draw);
         }
       } catch (error) {
         console.error('Canvas drawing error:', error);
@@ -459,4 +459,4 @@ export const SkillsRadar3D = () => {
       </AnimatePresence>
     </motion.div>
   );
-};
+}; 
