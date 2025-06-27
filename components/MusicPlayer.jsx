@@ -99,6 +99,13 @@ export const MusicPlayer = () => {
       filename: "Hip Shop.mp3",
       coverArt: "/music/covers/deltarune-hip-shop.jpg"
     },
+    {
+      title: "Fate",
+      artist: "Fate Series OST",
+      album: "Fate/Stay Night Soundtrack",
+      filename: "fate.mp3",
+      coverArt: "/music/covers/Fate_art.jpg"
+    },
   ];
 
   // Fisher-Yates shuffle algorithm to randomize playlist order
