@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backup": "node scripts/backup-critical-files.js create",
+    "backup:list": "node scripts/backup-critical-files.js list",
+    "backup:restore": "node scripts/backup-critical-files.js restore",
+    "pre-build": "npm run backup && npm run build"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.2",

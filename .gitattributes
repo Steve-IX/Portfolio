@@ -1,0 +1,19 @@
+# Ensure consistent line endings and prevent file corruption
+*.jsx text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.mp3 binary
+*.wav binary
+*.mp4 binary
+
+# Prevent merge conflicts in package-lock.json
+package-lock.json binary 
