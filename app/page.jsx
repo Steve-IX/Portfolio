@@ -344,12 +344,23 @@ const NavBar = () => {
 // -----------------------------
 const experiences = [
   {
+    company: 'FDM Group',
+    role: 'Software Engineer',
+    period: 'Sep 2025 – Present',
+    image: '/images/FDM Group Logo.png',
+    bullets: [
+      'Developing enterprise-grade software solutions using Java, Python, SQL, and cloud technologies.',
+      'Delivering scalable software solutions across finance, media, and technology sectors.',
+      'Implementing Agile methodologies and maintaining stakeholder communication for project delivery.',
+    ],
+  },
+  {
     company: 'Labelbox',
     role: 'Software Engineer',
-    period: 'Jun 2024 – Present',
+    period: 'Jul 2024 – Aug 2025',
     image: '/images/Labelbox_Logo.png',
     bullets: [
-      'Design and develop robust systems that accelerate AI model development.',
+      'Designed and developed robust systems that accelerated AI model development.',
       'Created high‑performance data‑labelling tools, improving accuracy & efficiency.',
       'Optimised the codebase, cutting load times by 50% and supporting 10k+ daily users.',
     ],
@@ -366,11 +377,12 @@ const experiences = [
   },
   {
     company: 'Lancaster University',
-    role: 'Software Engineering Intern',
-    period: 'Jun 2024 – Aug 2024',
+    role: 'BSc Computer Science Graduate',
+    period: 'Oct 2022 – Jun 2025',
     image: '/images/Lancaster_uni.png',
     bullets: [
-      'Developed web apps using modern JavaScript, focusing on performance and UX.',
+      'Completed BSc Computer Science with first-class honors, specializing in software engineering and AI.',
+      'Developed web applications using modern JavaScript, focusing on performance and UX optimization.',
       'Refactored asynchronous code, halving load times for 10k‑user applications.',
     ],
   },
@@ -511,10 +523,10 @@ export default function Portfolio() {
             transition={{ delay: 1.2, duration: 0.8 }}
           >
             <div className="typing-animation">
-              Software Engineer · AI & Quantum‑Computing Enthusiast
+              Software Engineer @ FDM Group | Java, Javascript, Eclipse
             </div>
             <div className="mt-2 text-lg md:text-xl" style={{ color: colors.primary }}>
-              Final‑Year CS @ Lancaster University
+              BSc (Hons) Computer Science, Lancaster University (2025)
             </div>
           </motion.div>
           <motion.div 
@@ -557,9 +569,8 @@ export default function Portfolio() {
         <div className="space-y-6">
           <p className="text-lg leading-relaxed">
             I'm a <span className="font-bold" style={{ color: colors.accent }}>passionate Software Engineer</span> and 
-            final-year Computer Science student at Lancaster University, maintaining a first-class honors trajectory and 
-            graduating in July 2025. Currently, I'm pushing the boundaries of AI development at <span className="font-semibold" style={{ color: colors.primary }}>Labelbox</span>, 
-            where I architect high-performance data labeling systems that serve over 10,000 daily users and accelerate machine learning workflows.
+            recent Computer Science graduate from Lancaster University, having completed my BSc (Hons) in June 2025. Currently, I'm advancing my career as a <span className="font-semibold" style={{ color: colors.primary }}>Software Engineer at FDM Group</span>, 
+            where I'm undergoing intensive training in modern software development practices, covering Java, Python, SQL, and cloud technologies while preparing for client deployments across finance, media, and technology sectors.
           </p>
           <p className="text-lg leading-relaxed">
             My journey spans from <span className="font-semibold" style={{ color: colors.accent }}>low-level embedded systems</span> programming 
@@ -599,7 +610,7 @@ export default function Portfolio() {
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     <div 
-                      className="w-16 h-16 rounded-lg p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
+                      className="w-24 h-24 rounded-lg p-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300"
                       style={{ 
                         backgroundColor: theme === 'dark' ? 'white' : '#f8fafc' 
                       }}

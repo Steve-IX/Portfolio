@@ -1,0 +1,19 @@
+<!-- Deltarune Chapter 1 - Hip Shop Cover Art -->
+<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="deltaruneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4c1d95;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#581c87;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="400" fill="url(#deltaruneGrad)"/>
+  <polygon points="200,60 220,100 260,100 230,130 240,170 200,150 160,170 170,130 140,100 180,100" fill="#fbbf24" stroke="#ffffff" stroke-width="2"/>
+  <text x="200" y="220" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#ffffff" text-anchor="middle">DELTARUNE</text>
+  <text x="200" y="250" font-family="Arial, sans-serif" font-size="18" fill="#e0e7ff" text-anchor="middle">CHAPTER 1</text>
+  <text x="200" y="290" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fbbf24" text-anchor="middle">HIP SHOP</text>
+  <rect x="120" y="320" width="160" height="30" fill="none" stroke="#fbbf24" stroke-width="2" rx="5"/>
+  <text x="200" y="340" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" text-anchor="middle">TOBY FOX</text>
+  <circle cx="200" cy="370" r="15" fill="none" stroke="#ffffff" stroke-width="2"/>
+  <polygon points="195,367 195,373 202,370" fill="#ffffff"/>
+</svg> 

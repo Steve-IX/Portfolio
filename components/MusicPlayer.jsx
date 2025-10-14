@@ -145,6 +145,7 @@ export const MusicPlayer = () => {
   const sourceRef = useRef(null);
   const isConnectedRef = useRef(false); // Track if audio element is connected
   const setupTimeoutRef = useRef(null); // For debouncing setup calls
+  const smoothingBufferRef = useRef(new Array(56).fill(0)); // Smoothing buffer for each bar
   const { theme, colors } = useTheme();
 
   const currentTrack = playlist[currentTrackIndex];
@@ -217,7 +218,7 @@ export const MusicPlayer = () => {
       
       // Create new analyzer and source
       const analyzer = audioContext.createAnalyser();
-      analyzer.fftSize = 256;
+      analyzer.fftSize = 512;
       analyzer.smoothingTimeConstant = 0.8;
       
       // Create source from current audio element
@@ -275,7 +276,7 @@ export const MusicPlayer = () => {
     
     if (!isPlaying) {
       // Show static bars when not playing
-      const barCount = 32;
+      const barCount = 56;
       const barWidth = width / barCount;
       
       for (let i = 0; i < barCount; i++) {
@@ -283,30 +284,35 @@ export const MusicPlayer = () => {
         const x = i * barWidth;
         const y = height - barHeight;
         
-        ctx.fillStyle = `${colors.primary}20`;
-        ctx.fillRect(x, y, barWidth - 1, barHeight);
+        ctx.fillStyle = `${colors.primary}25`;
+        ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
       }
       return;
     }
     
-    // Dynamic visualization when playing
-    const barCount = 32;
+    // Dynamic visualization when playing - thin bars with high quantity
+    const barCount = 56; // Increased to match the design
     const barWidth = width / barCount;
-    const dataStep = Math.floor(bufferLength / barCount);
     
     for (let i = 0; i < barCount; i++) {
-      const dataIndex = i * dataStep;
-      const barHeight = Math.max(2, (dataArray[dataIndex] / 255) * height * 0.8);
+      // Focus only on the first 40% of frequency data where most activity happens
+      const frequencyIndex = Math.floor((i / barCount) * (bufferLength * 0.4));
+      
+      const rawValue = dataArray[frequencyIndex] || 0;
+      
+      // No smoothing - direct response to audio input
+      const barHeight = Math.max(2, (rawValue / 255) * height * 0.85);
       const x = i * barWidth;
       const y = height - barHeight;
       
-      // Create gradient effect
-      const gradient = ctx.createLinearGradient(0, height, 0, 0);
-      gradient.addColorStop(0, colors.primary);
-      gradient.addColorStop(1, `${colors.primary}40`);
+      // Create vertical gradient effect (light at top, dark at bottom)
+      const gradient = ctx.createLinearGradient(0, y, 0, height);
+      gradient.addColorStop(0, `${colors.primary}90`); // Light at top
+      gradient.addColorStop(0.3, colors.primary);
+      gradient.addColorStop(1, `${colors.primary}60`); // Darker at bottom
       
       ctx.fillStyle = gradient;
-      ctx.fillRect(x, y, barWidth - 1, barHeight);
+      ctx.fillRect(x, y, Math.max(1, barWidth - 1), barHeight);
     }
     
     animationFrameRef.current = requestAnimationFrame(drawVisualizer);
@@ -795,7 +801,7 @@ export const MusicPlayer = () => {
         initial={{ opacity: 0, y: 100 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 2 }}
-        className={`fixed bottom-4 left-4 z-50 ${isMinimized ? 'w-16 h-16' : 'w-80'} transition-all duration-300`}
+        className={`fixed bottom-4 left-4 z-50 ${isMinimized ? 'w-16 h-16' : 'w-96'} transition-all duration-300`}
       >
         <div
           className="backdrop-blur-lg rounded-lg shadow-xl border transition-all duration-300"
@@ -848,8 +854,8 @@ export const MusicPlayer = () => {
                 )}
 
                 {/* Track Info */}
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-12 h-12 md:w-14 md:h-14 rounded-lg overflow-hidden relative">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden relative">
                     {!coverArtError && currentTrack.coverArt ? (
                       <>
                         <img
@@ -896,20 +902,20 @@ export const MusicPlayer = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div 
-                      className="font-medium text-sm truncate"
+                      className="font-medium text-base truncate"
                       style={{ color: colors.text }}
                     >
                       {currentTrack.title}
                     </div>
                     <div 
-                      className="text-xs truncate"
+                      className="text-sm truncate"
                       style={{ color: colors.muted || (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                     >
                       {currentTrack.artist}
                     </div>
                     {currentTrack.album && (
                       <div 
-                        className="text-xs truncate opacity-75"
+                        className="text-sm truncate opacity-75"
                         style={{ color: colors.muted || (theme === 'dark' ? '#9CA3AF' : '#6B7280') }}
                       >
                         {currentTrack.album}
